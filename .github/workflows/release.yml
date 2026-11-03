@@ -1,0 +1,54 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk Lagatron-v1.0-beta.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Beta
+          tag_name: ${{ github.ref_name }}
+          prerelease: true
+          files: Lagatron-v1.0-beta.apk
+          body: |
+            ### Lagatron v1.0 Beta Release 🚀
+
+            A lightweight, real-time ping latency monitor for Android with customizable status bar overlay.
+
+            #### Features:
+            - **Live Latency Overlay**: Floating draggable badge hovering over system status bar.
+            - **4 Display Modes**: Dot only, Latency (ms), Dot & Latency, and White Text Only.
+            - **Typography Controls**: Roboto, Poppins, Monospace, Serif, Condensed with Bold, Italics, 1px Drop Shadow, and Size Scaler.
+            - **Live Graph Canvas**: Real-time ping graph with R/Y/G color coding and disruption markers.
+            - **Dual Orientation Memory**: Independent coordinate persistence for portrait and landscape modes.
+            - **Start on Boot**: Automated service launch on device startup.
