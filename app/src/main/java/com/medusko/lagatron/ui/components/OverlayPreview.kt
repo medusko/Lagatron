@@ -39,9 +39,17 @@ fun OverlayPreview(
     isBold: Boolean,
     isItalic: Boolean,
     hasShadow: Boolean,
+    showMsUnit: Boolean,
     fontSizeSp: Float,
+    greenThresholdMs: Int,
+    orangeThresholdMs: Int,
     modifier: Modifier = Modifier
 ) {
+    val suffix = if (showMsUnit) " ms" else ""
+    val sampleGreen = "${maxOf(1, greenThresholdMs / 2)}$suffix"
+    val sampleOrange = "${(greenThresholdMs + orangeThresholdMs) / 2}$suffix"
+    val sampleRed = "${orangeThresholdMs + 40}$suffix"
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
@@ -91,8 +99,8 @@ fun OverlayPreview(
                         fontSizeSp = fontSizeSp,
                         textColor = greenColor,
                         dotColor = PingGreen,
-                        sampleText = "7 ms",
-                        sublabel = "< 10ms"
+                        sampleText = sampleGreen,
+                        sublabel = "< ${greenThresholdMs}ms"
                     )
                     PreviewBadge(
                         mode = displayMode,
@@ -103,8 +111,8 @@ fun OverlayPreview(
                         fontSizeSp = fontSizeSp,
                         textColor = orangeColor,
                         dotColor = PingOrange,
-                        sampleText = "42 ms",
-                        sublabel = "10-100ms"
+                        sampleText = sampleOrange,
+                        sublabel = "${greenThresholdMs}-${orangeThresholdMs}ms"
                     )
                     PreviewBadge(
                         mode = displayMode,
@@ -115,8 +123,8 @@ fun OverlayPreview(
                         fontSizeSp = fontSizeSp,
                         textColor = redColor,
                         dotColor = PingRed,
-                        sampleText = "140 ms",
-                        sublabel = "> 100ms"
+                        sampleText = sampleRed,
+                        sublabel = "> ${orangeThresholdMs}ms"
                     )
                 }
             }

@@ -27,7 +27,22 @@ class AppPreferences(context: Context) {
         private const val KEY_FONT_SIZE_SP = "font_size_sp"
         private const val KEY_TEXT_SHADOW = "text_shadow"
         private const val KEY_START_ON_BOOT = "start_on_boot"
+        private const val KEY_SHOW_MS_UNIT = "show_ms_unit"
+        private const val KEY_GREEN_THRESHOLD_MS = "green_threshold_ms"
+        private const val KEY_ORANGE_THRESHOLD_MS = "orange_threshold_ms"
     }
+
+    var showMsUnit: Boolean
+        get() = prefs.getBoolean(KEY_SHOW_MS_UNIT, true)
+        set(value) = prefs.edit().putBoolean(KEY_SHOW_MS_UNIT, value).apply()
+
+    var greenThresholdMs: Int
+        get() = prefs.getInt(KEY_GREEN_THRESHOLD_MS, 10)
+        set(value) = prefs.edit().putInt(KEY_GREEN_THRESHOLD_MS, value.coerceIn(1, 500)).apply()
+
+    var orangeThresholdMs: Int
+        get() = prefs.getInt(KEY_ORANGE_THRESHOLD_MS, 100)
+        set(value) = prefs.edit().putInt(KEY_ORANGE_THRESHOLD_MS, value.coerceIn(2, 1000)).apply()
 
     var startOnBoot: Boolean
         get() = prefs.getBoolean(KEY_START_ON_BOOT, false)

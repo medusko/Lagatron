@@ -40,7 +40,10 @@ class MainActivity : ComponentActivity() {
     private var isBold by mutableStateOf(true)
     private var isItalic by mutableStateOf(false)
     private var hasShadow by mutableStateOf(false)
+    private var showMsUnit by mutableStateOf(true)
     private var fontSizeSp by mutableStateOf(11.5f)
+    private var greenThresholdMs by mutableStateOf(10)
+    private var orangeThresholdMs by mutableStateOf(100)
     private var startOnBoot by mutableStateOf(false)
     private var portraitX by mutableStateOf(700)
     private var portraitY by mutableStateOf(30)
@@ -94,7 +97,10 @@ class MainActivity : ComponentActivity() {
                     isBold = isBold,
                     isItalic = isItalic,
                     hasShadow = hasShadow,
+                    showMsUnit = showMsUnit,
                     fontSizeSp = fontSizeSp,
+                    greenThresholdMs = greenThresholdMs,
+                    orangeThresholdMs = orangeThresholdMs,
                     startOnBoot = startOnBoot,
                     portraitX = portraitX,
                     portraitY = portraitY,
@@ -157,9 +163,25 @@ class MainActivity : ComponentActivity() {
                             PingForegroundService.updateConfig(this)
                         }
                     },
+                    onShowMsToggled = { showMs ->
+                        showMsUnit = showMs
+                        prefs.showMsUnit = showMs
+                        if (isRunning) {
+                            PingForegroundService.updateConfig(this)
+                        }
+                    },
                     onFontSizeChanged = { size ->
                         fontSizeSp = size
                         prefs.fontSizeSp = size
+                        if (isRunning) {
+                            PingForegroundService.updateConfig(this)
+                        }
+                    },
+                    onThresholdsChanged = { greenMs, orangeMs ->
+                        greenThresholdMs = greenMs
+                        orangeThresholdMs = orangeMs
+                        prefs.greenThresholdMs = greenMs
+                        prefs.orangeThresholdMs = orangeMs
                         if (isRunning) {
                             PingForegroundService.updateConfig(this)
                         }
@@ -230,7 +252,10 @@ class MainActivity : ComponentActivity() {
         isBold = prefs.isBold
         isItalic = prefs.isItalic
         hasShadow = prefs.hasTextShadow
+        showMsUnit = prefs.showMsUnit
         fontSizeSp = prefs.fontSizeSp
+        greenThresholdMs = prefs.greenThresholdMs
+        orangeThresholdMs = prefs.orangeThresholdMs
         startOnBoot = prefs.startOnBoot
         isRunning = prefs.isServiceRunning
         portraitX = prefs.overlayX

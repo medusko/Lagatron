@@ -41,8 +41,12 @@ fun PingGraphCard(
     history: List<PingPoint>,
     latestPing: PingResult?,
     isRunning: Boolean,
+    showMsUnit: Boolean,
+    greenThresholdMs: Int,
+    orangeThresholdMs: Int,
     modifier: Modifier = Modifier
 ) {
+    val currentStatus = latestPing?.statusForThresholds(greenThresholdMs, orangeThresholdMs)
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
@@ -63,14 +67,14 @@ fun PingGraphCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = if (isRunning) "Rolling latency (Green <10ms, Orange <100ms, Red >100ms)" else "Inactive - start overlay to record",
+                        text = if (isRunning) "Rolling latency (Green <${greenThresholdMs}ms, Yellow ≤${orangeThresholdMs}ms, Red >${orangeThresholdMs}ms)" else "Inactive - start overlay to record",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                if (isRunning && latestPing != null) {
-                    val statusColor = when (latestPing.status) {
+                if (isRunning && latestPing != null && currentStatus != null) {
+                    val statusColor = when (currentStatus) {
                         LatencyStatus.GREEN -> PingGreen
                         LatencyStatus.ORANGE -> PingOrange
                         LatencyStatus.RED -> PingRed
@@ -85,7 +89,7 @@ fun PingGraphCard(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = latestPing.formattedLatency(),
+                                text = latestPing.formattedLatency(showMs = showMsUnit),
                                 textAlign = TextAlign.Center,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -118,7 +122,7 @@ fun PingGraphCard(
 
             // Canvas Graph
             val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-            val activeColor = when (latestPing?.status) {
+            val activeColor = when (currentStatus) {
                 LatencyStatus.GREEN -> PingGreen
                 LatencyStatus.ORANGE -> PingOrange
                 LatencyStatus.RED -> PingRed

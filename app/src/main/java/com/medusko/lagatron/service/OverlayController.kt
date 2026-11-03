@@ -145,8 +145,13 @@ class OverlayController(private val context: Context) {
                 }
             }
 
+            val currentStatus = result.statusForThresholds(
+                greenThresholdMs = prefs.greenThresholdMs,
+                orangeThresholdMs = prefs.orangeThresholdMs
+            )
+
             val statusColorInt = if (!isMonochrome) {
-                when (result.status) {
+                when (currentStatus) {
                     LatencyStatus.GREEN -> 0xFF00E676.toInt()
                     LatencyStatus.ORANGE -> 0xFFFF9100.toInt()
                     LatencyStatus.RED -> 0xFFFF1744.toInt()
@@ -165,7 +170,7 @@ class OverlayController(private val context: Context) {
 
             // Update ping text, font style & size
             pingTextView?.let { tv ->
-                tv.text = result.formattedLatency()
+                tv.text = result.formattedLatency(showMs = prefs.showMsUnit)
                 tv.setTextColor(statusColorInt)
 
                 val style = when {

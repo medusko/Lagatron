@@ -77,7 +77,10 @@ fun MainScreen(
     isBold: Boolean,
     isItalic: Boolean,
     hasShadow: Boolean,
+    showMsUnit: Boolean,
     fontSizeSp: Float,
+    greenThresholdMs: Int,
+    orangeThresholdMs: Int,
     startOnBoot: Boolean,
     portraitX: Int,
     portraitY: Int,
@@ -95,7 +98,9 @@ fun MainScreen(
     onBoldToggled: (Boolean) -> Unit,
     onItalicToggled: (Boolean) -> Unit,
     onShadowToggled: (Boolean) -> Unit,
+    onShowMsToggled: (Boolean) -> Unit,
     onFontSizeChanged: (Float) -> Unit,
+    onThresholdsChanged: (greenMs: Int, orangeMs: Int) -> Unit,
     onStartOnBootToggled: (Boolean) -> Unit,
     onPositionChanged: (isLandscape: Boolean, newX: Int, newY: Int) -> Unit,
     onSwitchOrientation: (toLandscape: Boolean) -> Unit,
@@ -277,7 +282,10 @@ fun MainScreen(
                 PingGraphCard(
                     history = pingHistory,
                     latestPing = latestPing,
-                    isRunning = isRunning
+                    isRunning = isRunning,
+                    showMsUnit = showMsUnit,
+                    greenThresholdMs = greenThresholdMs,
+                    orangeThresholdMs = orangeThresholdMs
                 )
             }
 
@@ -288,13 +296,18 @@ fun MainScreen(
                     isBold = isBold,
                     isItalic = isItalic,
                     hasShadow = hasShadow,
+                    showMsUnit = showMsUnit,
                     fontSizeSp = fontSizeSp,
+                    greenThresholdMs = greenThresholdMs,
+                    orangeThresholdMs = orangeThresholdMs,
                     onModeSelected = onModeSelected,
                     onFontSelected = onFontSelected,
                     onBoldToggled = onBoldToggled,
                     onItalicToggled = onItalicToggled,
                     onShadowToggled = onShadowToggled,
-                    onFontSizeChanged = onFontSizeChanged
+                    onShowMsToggled = onShowMsToggled,
+                    onFontSizeChanged = onFontSizeChanged,
+                    onThresholdsChanged = onThresholdsChanged
                 )
             }
 
@@ -305,7 +318,10 @@ fun MainScreen(
                     isBold = isBold,
                     isItalic = isItalic,
                     hasShadow = hasShadow,
-                    fontSizeSp = fontSizeSp
+                    showMsUnit = showMsUnit,
+                    fontSizeSp = fontSizeSp,
+                    greenThresholdMs = greenThresholdMs,
+                    orangeThresholdMs = orangeThresholdMs
                 )
             }
 

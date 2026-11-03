@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -34,24 +34,71 @@ jobs:
       - name: Rename APK
         run: cp app/build/outputs/apk/release/app-release.apk Lagatron-v1.0-beta.apk
 
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: Lagatron-v1.0-beta.apk
+
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build macOS App Bundle
+        run: |
+          chmod +x macos/build-app.sh
+          ./macos/build-app.sh
+
+      - name: Package macOS ZIP & DMG
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent macos/build/Lagatron.app Lagatron-macOS-v1.0-beta.zip
+          hdiutil create -volname "Lagatron" -srcfolder macos/build/Lagatron.app -ov -format UDZO Lagatron-macOS-v1.0-beta.dmg
+
+      - name: Upload macOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: |
+            Lagatron-macOS-v1.0-beta.zip
+            Lagatron-macOS-v1.0-beta.dmg
+
+  release:
+    needs: [build-android, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: Beta
+          name: Lagatron Beta v1.0-beta (Android & macOS)
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.0-beta' }}
           prerelease: true
-          files: Lagatron-v1.0-beta.apk
+          files: |
+            Lagatron-v1.0-beta.apk
+            Lagatron-macOS-v1.0-beta.zip
+            Lagatron-macOS-v1.0-beta.dmg
           body: |
-            ### Lagatron v1.0 Beta Release 🚀
+            ### Lagatron v1.0 Beta Release 🚀 (Android & macOS)
 
-            A lightweight, real-time ping latency monitor for Android with customizable status bar overlay.
+            A lightweight, real-time ping latency monitor for **Android** and **macOS** with customizable status bar & floating HUD overlays.
+
+            #### Downloads
+            - 📱 **Android**: `Lagatron-v1.0-beta.apk`
+            - 🍎 **macOS (13.0+)**: `Lagatron-macOS-v1.0-beta.dmg` or `Lagatron-macOS-v1.0-beta.zip`
 
             #### Features:
-            - **Live Latency Overlay**: Floating draggable badge hovering over system status bar.
+            - **Live Latency in Status Bar & Floating HUD**: Native macOS Menu Bar status item + draggable on-screen HUD overlay on both Android and macOS.
             - **4 Display Modes**: Dot only, Latency (ms), Dot & Latency, and White Text Only.
+            - **Optional "ms" Unit Toggle**: Show or hide the `ms` unit suffix for an ultra-compact readout.
+            - **Customizable G / Y / R Latency Thresholds**: Quick presets (`Default 10/100ms`, `Gaming 30/80ms`, `Relaxed 50/150ms`) and custom sliders for Green, Yellow, and Red cutoffs.
             - **Typography Controls**: Roboto, Poppins, Monospace, Serif, Condensed with Bold, Italics, 1px Drop Shadow, and Size Scaler.
             - **Live Graph Canvas**: Real-time ping graph with R/Y/G color coding and disruption markers.
-            - **Dual Orientation Memory**: Independent coordinate persistence for portrait and landscape modes.
-            - **Start on Boot**: Automated service launch on device startup.
+            - **Start on Boot / Start at Login**: Automated launch on device startup.

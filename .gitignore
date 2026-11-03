@@ -11,3 +11,7 @@ local.properties
 app/build/
 build/
 *.apk
+*.dmg
+*.zip
+macos/.build/
+macos/build/

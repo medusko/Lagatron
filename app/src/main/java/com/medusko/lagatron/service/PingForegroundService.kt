@@ -211,7 +211,8 @@ class PingForegroundService : Service() {
     }
 
     private fun updateNotification(result: PingResult) {
-        val text = "${result.host}: ${result.formattedLatency()} (${result.status.name})"
+        val status = result.statusForThresholds(prefs.greenThresholdMs, prefs.orangeThresholdMs)
+        val text = "${result.host}: ${result.formattedLatency(showMs = prefs.showMsUnit)} (${status.name})"
         notificationManager.notify(NOTIFICATION_ID, buildNotification(text))
     }
 

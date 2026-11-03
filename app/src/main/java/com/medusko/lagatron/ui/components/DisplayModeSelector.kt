@@ -1,8 +1,10 @@
 package com.medusko.lagatron.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -11,11 +13,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -30,11 +37,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.medusko.lagatron.model.AppFont
 import com.medusko.lagatron.model.DisplayMode
+import com.medusko.lagatron.ui.theme.PingGreen
+import com.medusko.lagatron.ui.theme.PingOrange
+import com.medusko.lagatron.ui.theme.PingRed
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -44,13 +56,18 @@ fun DisplayModeSelector(
     isBold: Boolean,
     isItalic: Boolean,
     hasShadow: Boolean,
+    showMsUnit: Boolean,
     fontSizeSp: Float,
+    greenThresholdMs: Int,
+    orangeThresholdMs: Int,
     onModeSelected: (DisplayMode) -> Unit,
     onFontSelected: (AppFont) -> Unit,
     onBoldToggled: (Boolean) -> Unit,
     onItalicToggled: (Boolean) -> Unit,
     onShadowToggled: (Boolean) -> Unit,
+    onShowMsToggled: (Boolean) -> Unit,
     onFontSizeChanged: (Float) -> Unit,
+    onThresholdsChanged: (greenMs: Int, orangeMs: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -136,7 +153,7 @@ fun DisplayModeSelector(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "Typeface, weight, and size for overlay readings",
+                text = "Typeface, weight, unit suffix, and size for overlay readings",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 2.dp, bottom = 10.dp)
@@ -188,11 +205,11 @@ fun DisplayModeSelector(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Bold, Italics & Drop Shadow Buttons
-            Row(
+            // Bold, Italics, Drop Shadow & Show "ms" Unit Buttons
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilterChip(
                     selected = isBold,
@@ -226,6 +243,22 @@ fun DisplayModeSelector(
                     selected = hasShadow,
                     onClick = { onShadowToggled(!hasShadow) },
                     label = { Text("Shadow (1px)") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                        selectedLabelColor = MaterialTheme.colorScheme.primary,
+                        selectedLeadingIconColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+
+                FilterChip(
+                    selected = showMsUnit,
+                    onClick = { onShowMsToggled(!showMsUnit) },
+                    leadingIcon = if (showMsUnit) {
+                        {
+                            Icon(Icons.Default.Check, contentDescription = "Show ms", modifier = Modifier.padding(end = 4.dp))
+                        }
+                    } else null,
+                    label = { Text("Show \"ms\"") },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                         selectedLabelColor = MaterialTheme.colorScheme.primary,
@@ -273,6 +306,182 @@ fun DisplayModeSelector(
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Spacer(modifier = Modifier.height(14.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // G / Y / R Latency Thresholds Section
+            Text(
+                text = "Latency Color Thresholds (G / Y / R)",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "Customize millisecond cutoffs for Green, Yellow/Orange, and Red status",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp, bottom = 10.dp)
+            )
+
+            // Quick Threshold Presets
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                AssistChip(
+                    onClick = { onThresholdsChanged(10, 100) },
+                    label = { Text("Default (10 / 100 ms)", fontSize = 12.sp) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = if (greenThresholdMs == 10 && orangeThresholdMs == 100)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                        labelColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+                AssistChip(
+                    onClick = { onThresholdsChanged(30, 80) },
+                    label = { Text("Gaming (30 / 80 ms)", fontSize = 12.sp) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = if (greenThresholdMs == 30 && orangeThresholdMs == 80)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                        labelColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+                AssistChip(
+                    onClick = { onThresholdsChanged(50, 150) },
+                    label = { Text("Relaxed (50 / 150 ms)", fontSize = 12.sp) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = if (greenThresholdMs == 50 && orangeThresholdMs == 150)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                        labelColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Visual Summary Row for G / Y / R
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                ThresholdBadge(color = PingGreen, label = "GREEN", range = "< $greenThresholdMs ms")
+                ThresholdBadge(color = PingOrange, label = "YELLOW", range = "$greenThresholdMs–$orangeThresholdMs ms")
+                ThresholdBadge(color = PingRed, label = "RED", range = "> $orangeThresholdMs ms")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Green Max Slider
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Green Cutoff (< ms)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "< $greenThresholdMs ms",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PingGreen
+                )
+            }
+            Slider(
+                value = greenThresholdMs.toFloat(),
+                onValueChange = { newVal ->
+                    val newGreen = (newVal / 5f).roundToInt().coerceAtLeast(1) * 5
+                    val safeOrange = maxOf(orangeThresholdMs, newGreen + 10)
+                    onThresholdsChanged(newGreen, safeOrange)
+                },
+                valueRange = 5f..150f,
+                steps = 28,
+                colors = SliderDefaults.colors(
+                    thumbColor = PingGreen,
+                    activeTrackColor = PingGreen
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Yellow/Orange Max Slider
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Yellow Cutoff (≤ ms)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "$greenThresholdMs – $orangeThresholdMs ms",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PingOrange
+                )
+            }
+            Slider(
+                value = orangeThresholdMs.toFloat(),
+                onValueChange = { newVal ->
+                    val newOrange = (newVal / 5f).roundToInt() * 5
+                    val safeOrange = maxOf(newOrange, greenThresholdMs + 5)
+                    onThresholdsChanged(greenThresholdMs, safeOrange)
+                },
+                valueRange = 15f..300f,
+                steps = 56,
+                colors = SliderDefaults.colors(
+                    thumbColor = PingOrange,
+                    activeTrackColor = PingOrange
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThresholdBadge(color: androidx.compose.ui.graphics.Color, label: String, range: String) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = color.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.4f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(color)
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Column {
+                Text(
+                    text = label,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = color
+                )
+                Text(
+                    text = range,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }

@@ -41,3 +41,19 @@ The resulting APK is generated at:
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
+
+---
+
+## macOS Menu Bar & HUD Edition 🍎
+
+Lagatron also includes a native macOS app (`macos/`) built with Swift, SwiftUI, and AppKit that displays live ping latency directly in the macOS Menu Bar (Status Bar) and optionally as an always-on-top draggable floating HUD overlay.
+
+### Build & Run `Lagatron.app` (macOS 13+)
+```bash
+./macos/build-app.sh
+open macos/build/Lagatron.app
+```
+To install into `/Applications`:
+```bash
+cp -R macos/build/Lagatron.app /Applications/
+```
