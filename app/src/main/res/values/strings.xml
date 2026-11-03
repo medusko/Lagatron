@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Lagatron</string>
+    <string name="notification_channel_name">Lagatron Overlay Monitor</string>
+    <string name="notification_channel_desc">Shows ongoing ping latency and controls for the floating overlay</string>
+    <string name="notification_title">Ping Monitor Active</string>
+    <string name="action_stop">Stop</string>
+</resources>
