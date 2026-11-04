@@ -104,18 +104,3 @@ jobs:
             #### Downloads
             - 📱 **Android**: `Lagatron-v1.1-beta.apk`
             - 🍎 **macOS (13.0+)**: `Lagatron-macOS-v1.1-beta.dmg` or `Lagatron-macOS-v1.1-beta.zip`
-
-            A lightweight, real-time ping latency monitor for **Android** and **macOS** with customizable status bar & floating HUD overlays.
-
-            #### Downloads
-            - 📱 **Android**: `Lagatron-v1.0-beta.apk`
-            - 🍎 **macOS (13.0+)**: `Lagatron-macOS-v1.0-beta.dmg` or `Lagatron-macOS-v1.0-beta.zip`
-
-            #### Features:
-            - **Live Latency in Status Bar & Floating HUD**: Native macOS Menu Bar status item + draggable on-screen HUD overlay on both Android and macOS.
-            - **4 Display Modes**: Dot only, Latency (ms), Dot & Latency, and White Text Only.
-            - **Optional "ms" Unit Toggle**: Show or hide the `ms` unit suffix for an ultra-compact readout.
-            - **Customizable G / Y / R Latency Thresholds**: Quick presets (`Default 10/100ms`, `Gaming 30/80ms`, `Relaxed 50/150ms`) and custom sliders for Green, Yellow, and Red cutoffs.
-            - **Typography Controls**: Roboto, Poppins, Monospace, Serif, Condensed with Bold, Italics, 1px Drop Shadow, and Size Scaler.
-            - **Live Graph Canvas**: Real-time ping graph with R/Y/G color coding and disruption markers.
-            - **Start on Boot / Start at Login**: Automated launch on device startup.

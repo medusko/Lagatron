@@ -114,7 +114,14 @@ case "$( uname )" in                #(
   NONSTOP* )        nonstop=true ;;
 esac
 
-
+# Auto-detect Homebrew OpenJDK on macOS if JAVA_HOME is not set
+if [ -z "$JAVA_HOME" ] && "$darwin" ; then
+    if [ -d "/opt/homebrew/opt/openjdk@21" ] ; then
+        export JAVA_HOME="/opt/homebrew/opt/openjdk@21"
+    elif [ -d "/opt/homebrew/opt/openjdk" ] ; then
+        export JAVA_HOME="/opt/homebrew/opt/openjdk"
+    fi
+fi
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
