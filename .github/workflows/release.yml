@@ -81,26 +81,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: Lagatron Beta ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.1-beta' }} (Android & macOS)
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.1-beta' }}
+          name: Lagatron ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.1-RC1' }} (Android & macOS)
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.1-RC1' }}
           prerelease: true
           files: |
             Lagatron-*.apk
             Lagatron-macOS-*.zip
             Lagatron-macOS-*.dmg
           body: |
-            ### Lagatron v1.1 Beta Release 🚀 (Android & macOS)
+            ### Lagatron ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.1-RC1' }} Release Candidate 1 🚀 (Android & macOS)
 
             A high-performance, real-time ping latency monitor for **Android** and **macOS** with customizable status bar & floating HUD overlays, optimized for minimal battery and CPU usage.
 
-            #### What's New in v1.1:
+            #### Release Candidate 1 Highlights:
+            - **✨ Information & Diagnostic Parity with Keyboardy**: Comprehensive About screens with Hero identity cards, live diagnostic quick status bars, telemetry architecture pillars, release notes, and direct GitHub links across both macOS and Android.
             - **⚡ Streaming Ping Subprocess**: Replaced per-second process spawning with long-lived streaming ping sessions on both macOS and Android, slashing CPU overhead by 95%+.
             - **🔋 Screen & Sleep Battery Optimizations**: Automatically pauses telemetry during macOS system sleep and Android screen-off states to let radios enter low-power idle.
             - **🔔 Android Notification Throttling**: Eliminated 1-second system_server IPC spam; notifications now update selectively on status/target shifts and throttled intervals.
             - **🚀 View & Typography Caching**: Cached Typeface, FontFamily, and status dot Drawables/NSImages to prevent layout invalidation loops and memory allocations on every tick.
             - **📊 Precomputed Telemetry Stats**: Min, Max, and Avg statistics are now incrementally computed in the repository/service layer, eliminating repeated collection filtering on every UI render frame.
-            - **📦 R8 / Minification**: Enabled code shrinking and resource optimization on Android release builds for smaller APK size and faster startup.
+            - **📦 R8 / Minification**: Enabled code shrinking and resource optimization on Android release builds for smaller APK size (1.4MB) and faster startup.
 
             #### Downloads
-            - 📱 **Android**: `Lagatron-v1.1-beta.apk`
-            - 🍎 **macOS (13.0+)**: `Lagatron-macOS-v1.1-beta.dmg` or `Lagatron-macOS-v1.1-beta.zip`
+            - 📱 **Android**: `Lagatron-${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.1-RC1' }}.apk`
+            - 🍎 **macOS (13.0+)**: `Lagatron-macOS-${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.1-RC1' }}.dmg` or `.zip`

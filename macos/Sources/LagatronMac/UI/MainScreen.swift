@@ -873,7 +873,7 @@ public struct MainScreen: View {
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 3) {
-                            Text("v1.1-beta")
+                            Text("v1.1-RC1")
                                 .font(.system(size: 11, weight: .black, design: .monospaced))
                                 .foregroundColor(theme.primary)
                                 .padding(.horizontal, 8)
@@ -885,7 +885,7 @@ public struct MainScreen: View {
                                         .stroke(theme.primary.opacity(0.35), lineWidth: 1)
                                 )
 
-                            Text("Build 2")
+                            Text("Build 3")
                                 .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                                 .foregroundColor(theme.onSurfaceVariant)
                         }
@@ -986,10 +986,10 @@ public struct MainScreen: View {
                 aboutSectionGroup(header: "RELEASE NOTES & WHAT'S NEW") {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Lagatron for macOS v1.1-beta")
+                            Text("Lagatron for macOS v1.1-RC1")
                                 .font(.system(size: 12.5, weight: .bold))
                                 .foregroundColor(theme.onSurface)
-                            Text("Release Candidate • March 2026")
+                            Text("Release Candidate 1 • November 2026")
                                 .font(.system(size: 10.5))
                                 .foregroundColor(theme.onSurfaceVariant)
                         }
@@ -1009,7 +1009,7 @@ public struct MainScreen: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         whatsNewRow(
-                            title: "Subversion v1.1-beta Engine Tuning",
+                            title: "Release Candidate 1 Final Optimizations",
                             detail: "Optimized ping parser pipeline with reduced regex overhead and faster socket fallback."
                         )
                         whatsNewRow(
@@ -1107,7 +1107,7 @@ public struct MainScreen: View {
                 // 5. FOOTER
                 HStack {
                     Spacer()
-                    Text("Designed & Engineered by Medusko • Lagatron v1.1-beta (Build 2)")
+                    Text("Designed & Engineered by Medusko • Lagatron v1.1-RC1 (Build 3)")
                         .font(.system(size: 9.5, weight: .medium))
                         .foregroundColor(theme.onSurfaceVariant.opacity(0.8))
                     Spacer()

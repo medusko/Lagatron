@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.1-RC1] - 2026-11-04
+
+### 🌟 Release Candidate 1 Highlights
+- **Cross-Platform Information & Diagnostic Screens**:
+  - Full design and information architecture parity with Keyboardy across macOS and Android.
+  - **macOS**: Integrated dedicated full-view `aboutScrollView` with Hero Application Card, live diagnostic indicators (engine state, target IP, probe interval), 6 architecture pillars, release notes card, and direct GitHub resource links (Changelog, Releases, Source Code). Smooth back navigation with `← About Lagatron`.
+  - **Android**: Integrated custom Compose modal dialog (`AboutLagatronDialog`) with launcher icon rendering, live connection status dot, architecture feature highlights, and GitHub link actions via `LocalUriHandler`.
+- **Performance & Battery Tuning**:
+  - Streaming subprocess ICMP telemetry engine slashing background CPU overhead by 95%+.
+  - macOS system sleep (`NSWorkspace`) and Android screen-off radio power saving.
+  - Android notification IPC throttling eliminating continuous wakeups.
+  - Typeface, FontFamily, and status dot caching for zero allocation UI render passes.
+- **Distribution & Artifact Packaging**:
+  - Android Release APK minified and resource-shrunk (1.4MB) via R8.
+  - macOS Universal binary package with signed application bundle, `.dmg`, and `.zip` distribution archives.
+
+---
+
 ## [v1.1-beta] - 2026-11-04
 
 ### ⚡ Performance & Battery Optimizations

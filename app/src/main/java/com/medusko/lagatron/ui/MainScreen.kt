@@ -518,7 +518,7 @@ private fun AboutLagatronDialog(
                                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
                                     ) {
                                         Text(
-                                            text = "v1.1-beta",
+                                            text = "v1.1-RC1",
                                             fontWeight = FontWeight.Bold,
                                             fontFamily = FontFamily.Monospace,
                                             fontSize = 11.sp,
@@ -527,7 +527,7 @@ private fun AboutLagatronDialog(
                                         )
                                     }
                                     Text(
-                                        text = "Build 2",
+                                        text = "Build 3",
                                         fontWeight = FontWeight.Bold,
                                         fontFamily = FontFamily.Monospace,
                                         fontSize = 9.5.sp,
@@ -659,7 +659,7 @@ private fun AboutLagatronDialog(
                                 verticalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 Text(
-                                    text = "• Subversion v1.1-beta Engine Tuning",
+                                    text = "• Release Candidate 1 Final Optimizations",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -729,7 +729,7 @@ private fun AboutLagatronDialog(
 
                     // 5. FOOTER
                     Text(
-                        text = "Lagatron v1.1-beta (Build 2) • Built for Android 15 / Pixel • Designed & Engineered by Medusko",
+                        text = "Lagatron v1.1-RC1 (Build 3) • Release Candidate 1 • Built for Android 15 / Pixel • Designed & Engineered by Medusko",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
