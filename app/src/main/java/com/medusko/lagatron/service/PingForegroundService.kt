@@ -5,8 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
@@ -14,12 +16,14 @@ import androidx.core.app.NotificationCompat
 import com.medusko.lagatron.MainActivity
 import com.medusko.lagatron.R
 import com.medusko.lagatron.data.AppPreferences
+import com.medusko.lagatron.data.PingHistoryRepository
+import com.medusko.lagatron.model.LatencyStatus
 import com.medusko.lagatron.model.PingResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -76,12 +80,67 @@ class PingForegroundService : Service() {
     private var pingJob: Job? = null
     private var lastResult: PingResult? = null
 
+    // Cached notification artifacts
+    private var openAppPendingIntent: PendingIntent? = null
+    private var stopPendingIntent: PendingIntent? = null
+    private var notificationBuilder: NotificationCompat.Builder? = null
+    private var lastNotifiedStatus: LatencyStatus? = null
+    private var lastNotifiedHost: String = ""
+    private var lastNotificationTimeMs: Long = 0
+
+    // Screen State Receiver to save battery when screen is locked/off
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> {
+                    PingHistoryRepository.recordInterruption("Screen Off")
+                    pausePingLoop()
+                }
+                Intent.ACTION_SCREEN_ON -> {
+                    if (prefs.isServiceRunning) {
+                        PingHistoryRepository.recordInterruption("Screen On")
+                        startPingLoop()
+                    }
+                }
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         prefs = AppPreferences(this)
         overlayController = OverlayController(this)
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannel()
+        initPendingIntents()
+
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+        }
+        registerReceiver(screenReceiver, filter)
+    }
+
+    private fun initPendingIntents() {
+        val openAppIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        openAppPendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            openAppIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val stopIntent = Intent(this, PingForegroundService::class.java).apply {
+            action = ACTION_STOP
+        }
+        stopPendingIntent = PendingIntent.getService(
+            this,
+            1,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -95,8 +154,13 @@ class PingForegroundService : Service() {
                 overlayController.setPosition(x, y)
             }
             ACTION_UPDATE_CONFIG -> {
+                overlayController.applyTypographyAndMode(prefs.displayMode, prefs.appFont)
                 lastResult?.let {
                     overlayController.updatePing(it, prefs.displayMode, prefs.appFont)
+                }
+                // Check if host changed
+                if (prefs.getActiveHost() != lastNotifiedHost && prefs.isServiceRunning) {
+                    startPingLoop()
                 }
             }
             else -> {
@@ -108,8 +172,8 @@ class PingForegroundService : Service() {
 
     private fun startMonitoring() {
         prefs.isServiceRunning = true
-        com.medusko.lagatron.data.PingHistoryRepository.recordInterruption("Started")
-        val initialNotification = buildNotification("Starting ping monitor...")
+        PingHistoryRepository.recordInterruption("Started")
+        val initialNotification = getOrCreateNotification("Starting ping monitor (${prefs.getActiveHost()})...")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
@@ -125,33 +189,33 @@ class PingForegroundService : Service() {
         startPingLoop()
     }
 
-    private fun startPingLoop() {
+    private fun pausePingLoop() {
         pingJob?.cancel()
-        var currentHost = prefs.getActiveHost()
+        pingJob = null
+    }
+
+    private fun startPingLoop() {
+        pausePingLoop()
+        val host = prefs.getActiveHost()
+        val interval = prefs.intervalMs
+        lastNotifiedHost = host
+
         pingJob = serviceScope.launch {
-            while (isActive) {
-                val host = prefs.getActiveHost()
-                if (host != currentHost) {
-                    com.medusko.lagatron.data.PingHistoryRepository.recordInterruption("Target: $host")
-                    currentHost = host
-                }
+            PingEngine.stream(host, interval).collect { result ->
+                if (!isActive || !prefs.isServiceRunning) return@collect
 
-                val result = PingEngine.ping(host)
                 lastResult = result
-
-                com.medusko.lagatron.data.PingHistoryRepository.recordPing(result)
+                PingHistoryRepository.recordPing(result)
                 overlayController.updatePing(result, prefs.displayMode, prefs.appFont)
-                updateNotification(result)
-
-                delay(prefs.intervalMs)
+                throttledUpdateNotification(result)
             }
         }
     }
 
     private fun stopMonitoring() {
         prefs.isServiceRunning = false
-        com.medusko.lagatron.data.PingHistoryRepository.recordInterruption("Stopped")
-        pingJob?.cancel()
+        PingHistoryRepository.recordInterruption("Stopped")
+        pausePingLoop()
         overlayController.hide()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -177,50 +241,47 @@ class PingForegroundService : Service() {
         }
     }
 
-    private fun buildNotification(statusText: String): Notification {
-        val openAppIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        val openAppPendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            openAppIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val stopIntent = Intent(this, PingForegroundService::class.java).apply {
-            action = ACTION_STOP
-        }
-        val stopPendingIntent = PendingIntent.getService(
-            this,
-            1,
-            stopIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+    private fun getOrCreateNotification(statusText: String): Notification {
+        val builder = notificationBuilder ?: NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(getString(R.string.notification_title))
-            .setContentText(statusText)
             .setContentIntent(openAppPendingIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .addAction(R.drawable.ic_notification, getString(R.string.action_stop), stopPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
+            .also { notificationBuilder = it }
+
+        return builder.setContentText(statusText).build()
     }
 
-    private fun updateNotification(result: PingResult) {
+    private fun throttledUpdateNotification(result: PingResult) {
+        val now = System.currentTimeMillis()
         val status = result.statusForThresholds(prefs.greenThresholdMs, prefs.orangeThresholdMs)
-        val text = "${result.host}: ${result.formattedLatency(showMs = prefs.showMsUnit)} (${status.name})"
-        notificationManager.notify(NOTIFICATION_ID, buildNotification(text))
+
+        // Only issue notify IPC when latency status changes (e.g. Green -> Red), host changes, or after 30s
+        val statusChanged = status != lastNotifiedStatus
+        val hostChanged = result.host != lastNotifiedHost
+        val periodElapsed = (now - lastNotificationTimeMs) > 30_000L
+
+        if (statusChanged || hostChanged || periodElapsed) {
+            lastNotifiedStatus = status
+            lastNotifiedHost = result.host
+            lastNotificationTimeMs = now
+
+            val text = "${result.host}: ${result.formattedLatency(showMs = prefs.showMsUnit)} (${status.name})"
+            notificationManager.notify(NOTIFICATION_ID, getOrCreateNotification(text))
+        }
     }
 
     override fun onDestroy() {
         prefs.isServiceRunning = false
-        pingJob?.cancel()
+        pausePingLoop()
         serviceScope.cancel()
         overlayController.hide()
+        try {
+            unregisterReceiver(screenReceiver)
+        } catch (_: Exception) {}
         super.onDestroy()
     }
 

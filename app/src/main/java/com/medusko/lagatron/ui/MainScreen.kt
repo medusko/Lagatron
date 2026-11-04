@@ -90,6 +90,7 @@ fun MainScreen(
     activeHost: String,
     pingHistory: List<PingPoint>,
     latestPing: PingResult?,
+    pingStats: com.medusko.lagatron.data.PingStats = com.medusko.lagatron.data.PingStats(),
     onToggleTheme: () -> Unit,
     onPresetSelected: (PresetServer) -> Unit,
     onCustomHostChanged: (String) -> Unit,
@@ -150,7 +151,7 @@ fun MainScreen(
                         lineHeight = 18.sp
                     )
                     Text(
-                        text = "Lagatron v1.0 • Built for Android 15 / Pixel",
+                        text = "Lagatron v1.1 • Built for Android 15 / Pixel",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
@@ -285,7 +286,8 @@ fun MainScreen(
                     isRunning = isRunning,
                     showMsUnit = showMsUnit,
                     greenThresholdMs = greenThresholdMs,
-                    orangeThresholdMs = orangeThresholdMs
+                    orangeThresholdMs = orangeThresholdMs,
+                    stats = pingStats
                 )
             }
 

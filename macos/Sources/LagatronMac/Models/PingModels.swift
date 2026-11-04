@@ -160,12 +160,19 @@ public enum AppFont: String, CaseIterable, Identifiable {
         }
     }
 
+    private static var fontCache: [String: NSFont] = [:]
+
     public func swiftUIFont(size: CGFloat, isBold: Bool, isItalic: Bool) -> Font {
         let nsFont = self.nsFont(size: size, isBold: isBold, isItalic: isItalic)
         return Font(nsFont)
     }
 
     public func nsFont(size: CGFloat, isBold: Bool, isItalic: Bool) -> NSFont {
+        let cacheKey = "\(rawValue)_\(size)_\(isBold)_\(isItalic)"
+        if let cached = Self.fontCache[cacheKey] {
+            return cached
+        }
+
         let weight: NSFont.Weight = isBold ? .bold : .regular
         var baseFont: NSFont
 
@@ -202,6 +209,8 @@ public enum AppFont: String, CaseIterable, Identifiable {
             let manager = NSFontManager.shared
             baseFont = manager.convert(baseFont, toHaveTrait: .boldFontMask)
         }
+
+        Self.fontCache[cacheKey] = baseFont
         return baseFont
     }
 
@@ -218,12 +227,16 @@ public enum AppFont: String, CaseIterable, Identifiable {
 }
 
 public struct PingPoint: Identifiable, Equatable {
-    public let id = UUID()
+    private static var counter: Int = 0
+
+    public let id: Int
     public let latencyMs: Float // -1 for drop, -2 for interruption marker
     public let isInterruption: Bool
     public let label: String
 
     public init(latencyMs: Float, isInterruption: Bool = false, label: String = "") {
+        Self.counter += 1
+        self.id = Self.counter
         self.latencyMs = latencyMs
         self.isInterruption = isInterruption
         self.label = label

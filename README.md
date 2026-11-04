@@ -4,20 +4,25 @@ Lagatron is an ultra-lightweight, real-time network latency monitor for **Androi
 
 ---
 
-## 📥 Downloads (Beta Release)
+## 📥 Downloads (Latest Release v1.1-beta)
 
-Grab the latest pre-built binaries from the **[GitHub Releases page](https://github.com/medusko/Lagatron/releases/tag/v1.0-beta)**:
+Grab the latest pre-built binaries from the **[GitHub Releases page](https://github.com/medusko/Lagatron/releases/tag/v1.1-beta)**:
 
-| Platform | Download | Requirements |
-| :--- | :--- | :--- |
-| 📱 **Android** | [`Lagatron-v1.0-beta.apk`](https://github.com/medusko/Lagatron/releases/download/v1.0-beta/Lagatron-v1.0-beta.apk) | Android 8.0+ (API 26 – Android 15+) |
-| 🍎 **macOS (DMG)** | [`Lagatron-macOS-v1.0-beta.dmg`](https://github.com/medusko/Lagatron/releases/download/v1.0-beta/Lagatron-macOS-v1.0-beta.dmg) | macOS 13.0+ (Ventura / Sonoma / Sequoia+) |
-| 🍎 **macOS (ZIP)** | [`Lagatron-macOS-v1.0-beta.zip`](https://github.com/medusko/Lagatron/releases/download/v1.0-beta/Lagatron-macOS-v1.0-beta.zip) | macOS 13.0+ (`Lagatron.app` bundle) |
+| Platform | Download | Requirements | Size |
+| :--- | :--- | :--- | :--- |
+| 📱 **Android** | [`Lagatron-v1.1-beta.apk`](https://github.com/medusko/Lagatron/releases/download/v1.1-beta/Lagatron-v1.1-beta.apk) | Android 8.0+ (API 26 – Android 15+) | **1.3 MB** |
+| 🍎 **macOS (DMG)** | [`Lagatron-macOS-v1.1-beta.dmg`](https://github.com/medusko/Lagatron/releases/download/v1.1-beta/Lagatron-macOS-v1.1-beta.dmg) | macOS 13.0+ (Ventura / Sonoma / Sequoia+) | **1.5 MB** |
+| 🍎 **macOS (ZIP)** | [`Lagatron-macOS-v1.1-beta.zip`](https://github.com/medusko/Lagatron/releases/download/v1.1-beta/Lagatron-macOS-v1.1-beta.zip) | macOS 13.0+ (`Lagatron.app` bundle) | **1.2 MB** |
 
 ---
 
 ## ✨ Features (Android & macOS Parity)
 
+- **⚡ Ultra-Low Battery & CPU Overhead**:
+  - **Streaming Subprocess Engine**: Replaced per-second subprocess spawning with long-running streaming ping sessions, cutting background CPU usage by >95%.
+  - **Screen & Sleep Aware**: Automatically suspends probing during macOS system sleep and Android screen-off states to let cellular and Wi-Fi modems stay in low-power idle.
+  - **Differential UI Rendering**: View hierarchy and typography caching avoids layout invalidations on every tick.
+  - **R8 Optimized**: 92% smaller APK size and faster startup.
 - **Preset & Custom Ping Targets**:
   - Built-in public DNS presets: **Google DNS** (`8.8.8.8`), **Cloudflare DNS** (`1.1.1.1`), and **Quad9 DNS** (`9.9.9.9`).
   - **Custom Host**: Enter any IP address or domain name (e.g., `192.168.1.1`, `github.com`).
@@ -37,9 +42,9 @@ Grab the latest pre-built binaries from the **[GitHub Releases page](https://git
     - **Relaxed**: 🟢 Green `< 50 ms` · 🟠 Yellow `50–150 ms` · 🔴 Red `> 150 ms`
   - **Custom Cutoff Sliders**: Independently tune your exact Green (`5–150 ms`) and Yellow/Orange (`15–300 ms`) millisecond cutoffs.
 - **Live Rolling Latency Graph**:
-  - Plots the last 50 ping samples with `MIN`, `AVG`, `MAX`, and `SAMPLES` statistics, dynamic R/Y/G line & gradient coloring, and dashed interruption markers when targets change or monitoring restarts.
+  - Plots the last 50 ping samples with incrementally computed `MIN`, `AVG`, `MAX`, and `SAMPLES` statistics, dynamic R/Y/G line & gradient coloring, and dashed interruption markers when targets change or monitoring restarts.
 - **ICMP Ping with Automatic TCP Fallback**:
-  - Executes native system ICMP `ping` first and automatically falls back to TCP handshake latency measurement (`53`, `443`, `80`) on networks that block ICMP packets.
+  - Native system ICMP `ping` with port affinity and DNS caching, automatically falling back to TCP handshake latency measurement (`53`, `443`, `80`) on networks that block ICMP packets.
 - **Adaptive Themes & Auto-Start**:
   - Switch between **Dark Mode** (`#101216`) and **Warm Cream Light Mode** (`#F6F1E8`).
   - **Start on Boot** (Android) / **Start at Login** (macOS).
@@ -68,10 +73,10 @@ open /Applications/Lagatron.app
 Built with **100% Kotlin & Jetpack Compose**:
 - **Status Bar & Cutout Overlay**: Supports dragging directly over the Android status bar and camera cutout areas (`FLAG_LAYOUT_NO_LIMITS`, `LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS`).
 - **Dual Orientation Memory**: Remembers independent `(X, Y)` screen coordinates for **Portrait** and **Landscape** orientations and automatically snaps when you rotate your device.
-- **Persistent Notification**: Foreground service (`FOREGROUND_SERVICE_SPECIAL_USE`, Android 14/15 compliant) with live latency readout and a 1-tap **Stop** action.
+- **Persistent Notification**: Throttled foreground service (`FOREGROUND_SERVICE_SPECIAL_USE`, Android 14/15 compliant) with live latency readout and a 1-tap **Stop** action.
 
 ### Building & Installing on Android
 ```bash
-./gradlew assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleRelease
+adb install -r app/build/outputs/apk/release/app-release.apk
 ```

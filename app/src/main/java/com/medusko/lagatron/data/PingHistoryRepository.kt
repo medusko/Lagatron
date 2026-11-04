@@ -1,14 +1,24 @@
 package com.medusko.lagatron.data
 
+import androidx.compose.runtime.Immutable
 import com.medusko.lagatron.model.PingResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+@Immutable
 data class PingPoint(
     val latencyMs: Float, // -1 for drop, -2 for interruption marker
     val isInterruption: Boolean = false,
     val label: String = ""
+)
+
+@Immutable
+data class PingStats(
+    val minMs: Float = 0f,
+    val maxMs: Float = 0f,
+    val avgMs: Float = 0f,
+    val sampleCount: Int = 0
 )
 
 object PingHistoryRepository {
@@ -19,6 +29,9 @@ object PingHistoryRepository {
 
     private val _latestPing = MutableStateFlow<PingResult?>(null)
     val latestPing: StateFlow<PingResult?> = _latestPing.asStateFlow()
+
+    private val _stats = MutableStateFlow(PingStats())
+    val stats: StateFlow<PingStats> = _stats.asStateFlow()
 
     fun recordPing(result: PingResult) {
         _latestPing.value = result
@@ -31,22 +44,52 @@ object PingHistoryRepository {
             currentList.removeAt(0)
         }
         _history.value = currentList
+        recomputeStats(currentList)
     }
 
     fun recordInterruption(reason: String) {
         val currentList = _history.value.toMutableList()
-        // Only add interruption if the list isn't empty and the last item isn't already an interruption
         if (currentList.isNotEmpty() && !currentList.last().isInterruption) {
             currentList.add(PingPoint(latencyMs = -2f, isInterruption = true, label = reason))
             if (currentList.size > MAX_HISTORY_SIZE) {
                 currentList.removeAt(0)
             }
             _history.value = currentList
+            recomputeStats(currentList)
+        }
+    }
+
+    private fun recomputeStats(list: List<PingPoint>) {
+        var minVal = Float.MAX_VALUE
+        var maxVal = 0f
+        var sum = 0f
+        var count = 0
+
+        for (point in list) {
+            if (!point.isInterruption && point.latencyMs >= 0) {
+                val ms = point.latencyMs
+                if (ms < minVal) minVal = ms
+                if (ms > maxVal) maxVal = ms
+                sum += ms
+                count++
+            }
+        }
+
+        if (count > 0) {
+            _stats.value = PingStats(
+                minMs = minVal,
+                maxMs = maxVal,
+                avgMs = sum / count,
+                sampleCount = count
+            )
+        } else {
+            _stats.value = PingStats()
         }
     }
 
     fun clear() {
         _history.value = emptyList()
         _latestPing.value = null
+        _stats.value = PingStats()
     }
 }

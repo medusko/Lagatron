@@ -173,10 +173,10 @@ public struct MainScreen: View {
             orangeThresholdMs: prefs.orangeThresholdMs
         )
         let history = monitor.history
-        let validPoints = history.filter { !$0.isInterruption && $0.latencyMs >= 0 }.map { $0.latencyMs }
-        let minPing = validPoints.min() ?? 0
-        let maxPing = validPoints.max() ?? 0
-        let avgPing = validPoints.isEmpty ? 0 : validPoints.reduce(0, +) / Float(validPoints.count)
+        let minPing = monitor.minPing
+        let maxPing = monitor.maxPing
+        let avgPing = monitor.avgPing
+        let samplesCount = monitor.validSamplesCount
 
         return CardContainer(theme: theme) {
             VStack(alignment: .leading, spacing: 12) {
@@ -211,13 +211,13 @@ public struct MainScreen: View {
                 // Stats summary row
                 HStack {
                     Spacer()
-                    StatItemView(label: "MIN", value: validPoints.isEmpty ? "--" : String(format: "%.0f ms", minPing), theme: theme)
+                    StatItemView(label: "MIN", value: samplesCount == 0 ? "--" : String(format: "%.0f ms", minPing), theme: theme)
                     Spacer()
-                    StatItemView(label: "AVG", value: validPoints.isEmpty ? "--" : String(format: "%.1f ms", avgPing), theme: theme)
+                    StatItemView(label: "AVG", value: samplesCount == 0 ? "--" : String(format: "%.1f ms", avgPing), theme: theme)
                     Spacer()
-                    StatItemView(label: "MAX", value: validPoints.isEmpty ? "--" : String(format: "%.0f ms", maxPing), theme: theme)
+                    StatItemView(label: "MAX", value: samplesCount == 0 ? "--" : String(format: "%.0f ms", maxPing), theme: theme)
                     Spacer()
-                    StatItemView(label: "SAMPLES", value: "\(validPoints.count)", theme: theme)
+                    StatItemView(label: "SAMPLES", value: "\(samplesCount)", theme: theme)
                     Spacer()
                 }
 
@@ -841,7 +841,7 @@ public struct MainScreen: View {
                     .foregroundColor(theme.onSurface)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("Lagatron v1.0 • Native macOS Menu Bar Edition")
+                Text("Lagatron v1.1 • Native macOS Menu Bar Edition")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(theme.onSurfaceVariant.opacity(0.8))
 

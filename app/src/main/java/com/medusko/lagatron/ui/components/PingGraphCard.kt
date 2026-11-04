@@ -44,6 +44,7 @@ fun PingGraphCard(
     showMsUnit: Boolean,
     greenThresholdMs: Int,
     orangeThresholdMs: Int,
+    stats: com.medusko.lagatron.data.PingStats = com.medusko.lagatron.data.PingStats(),
     modifier: Modifier = Modifier
 ) {
     val currentStatus = latestPing?.statusForThresholds(greenThresholdMs, orangeThresholdMs)
@@ -103,21 +104,16 @@ fun PingGraphCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Stats summary row
-            val validPoints = history.filter { !it.isInterruption && it.latencyMs >= 0 }.map { it.latencyMs }
-            val minPing = if (validPoints.isNotEmpty()) validPoints.minOrNull() ?: 0f else 0f
-            val maxPing = if (validPoints.isNotEmpty()) validPoints.maxOrNull() ?: 0f else 0f
-            val avgPing = if (validPoints.isNotEmpty()) validPoints.average().toFloat() else 0f
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 12.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatItem(label = "MIN", value = if (validPoints.isEmpty()) "--" else "%.0f ms".format(minPing))
-                StatItem(label = "AVG", value = if (validPoints.isEmpty()) "--" else "%.1f ms".format(avgPing))
-                StatItem(label = "MAX", value = if (validPoints.isEmpty()) "--" else "%.0f ms".format(maxPing))
-                StatItem(label = "SAMPLES", value = "${validPoints.size}")
+                StatItem(label = "MIN", value = if (stats.sampleCount == 0) "--" else "%.0f ms".format(stats.minMs))
+                StatItem(label = "AVG", value = if (stats.sampleCount == 0) "--" else "%.1f ms".format(stats.avgMs))
+                StatItem(label = "MAX", value = if (stats.sampleCount == 0) "--" else "%.0f ms".format(stats.maxMs))
+                StatItem(label = "SAMPLES", value = "${stats.sampleCount}")
             }
 
             // Canvas Graph
@@ -165,7 +161,7 @@ fun PingGraphCard(
                         drawLine(gridColor, Offset(0f, height), Offset(width, height), strokeWidth = 1f)
 
                         // Peak reference scaling
-                        val peakY = maxOf(maxPing, 100f) * 1.15f
+                        val peakY = maxOf(stats.maxMs, 100f) * 1.15f
                         val stepX = if (history.size > 1) width / (history.size - 1) else width
 
                         val linePath = Path()

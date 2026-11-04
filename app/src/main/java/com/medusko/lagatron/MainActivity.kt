@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val pingHistory by PingHistoryRepository.history.collectAsState()
             val latestPing by PingHistoryRepository.latestPing.collectAsState()
+            val pingStats by PingHistoryRepository.stats.collectAsState()
 
             LagatronTheme(darkTheme = isDarkMode) {
                 MainScreen(
@@ -110,6 +111,7 @@ class MainActivity : ComponentActivity() {
                     activeHost = prefs.getActiveHost(),
                     pingHistory = pingHistory,
                     latestPing = latestPing,
+                    pingStats = pingStats,
                     onToggleTheme = {
                         isDarkMode = !isDarkMode
                         prefs.themeMode = if (isDarkMode) "DARK" else "LIGHT"

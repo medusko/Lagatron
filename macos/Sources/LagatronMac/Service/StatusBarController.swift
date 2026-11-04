@@ -8,6 +8,13 @@ public final class StatusBarController: NSObject {
     private let prefs = AppPreferences.shared
     private let monitor = PingMonitorService.shared
 
+    // Cached drawing artifacts to avoid allocations on every tick
+    private var dotImages: [UInt64: NSImage] = [:]
+    private var lastRenderedText: String = ""
+    private var lastRenderedColorHex: UInt32 = 0
+    private var lastRenderedMode: DisplayMode? = nil
+    private var lastRenderedRunning: Bool = false
+
     public override init() {
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         self.popover = NSPopover()
@@ -114,7 +121,14 @@ public final class StatusBarController: NSObject {
         guard let button = statusItem.button else { return }
 
         if !prefs.isServiceRunning {
-            button.image = makeDotImage(color: NSColor.systemGray, diameter: 8)
+            if lastRenderedRunning == false && lastRenderedText == "OFF" {
+                return
+            }
+            lastRenderedRunning = false
+            lastRenderedText = "OFF"
+            lastRenderedMode = nil
+
+            button.image = cachedDotImage(color: NSColor.systemGray, colorKey: 0x808080, diameter: 8)
             button.imagePosition = .imageLeading
             let font = NSFont.monospacedSystemFont(ofSize: 11.5, weight: .semibold)
             let attrs: [NSAttributedString.Key: Any] = [
@@ -132,11 +146,25 @@ public final class StatusBarController: NSObject {
             greenThresholdMs: prefs.greenThresholdMs,
             orangeThresholdMs: prefs.orangeThresholdMs
         ) ?? .green
+        let statusColorHex = isMonochrome ? 0xFFFFFF : status.colorHex
         let statusColor: NSColor = isMonochrome ? NSColor.labelColor : status.nsColor
         let fallbackText = prefs.showMsUnit ? "... ms" : "..."
         let latencyText = result?.formattedLatency(showMs: prefs.showMsUnit) ?? fallbackText
 
-        // Clamp menu bar font size so it always fits the macOS menu bar height cleanly
+        // Fast-path: avoid re-rendering attributed string if nothing visual changed
+        if lastRenderedRunning == true &&
+           lastRenderedText == latencyText &&
+           lastRenderedColorHex == statusColorHex &&
+           lastRenderedMode == mode {
+            return
+        }
+
+        lastRenderedRunning = true
+        lastRenderedText = latencyText
+        lastRenderedColorHex = statusColorHex
+        lastRenderedMode = mode
+
+        // Clamp menu bar font size so it always fits the macOS menu bar cleanly
         let clampedSize = CGFloat(min(max(prefs.fontSizeSp, 9.0), 16.0))
         let nsFont = prefs.appFont.nsFont(size: clampedSize, isBold: prefs.isBold, isItalic: prefs.isItalic)
 
@@ -156,7 +184,7 @@ public final class StatusBarController: NSObject {
 
         switch mode {
         case .dotOnly:
-            button.image = makeDotImage(color: status.nsColor, diameter: 10)
+            button.image = cachedDotImage(color: status.nsColor, colorKey: status.colorHex, diameter: 10)
             button.imagePosition = .imageOnly
             button.attributedTitle = NSAttributedString(string: "")
 
@@ -166,7 +194,7 @@ public final class StatusBarController: NSObject {
             button.attributedTitle = NSAttributedString(string: latencyText, attributes: attributes)
 
         case .both:
-            button.image = makeDotImage(color: status.nsColor, diameter: 9)
+            button.image = cachedDotImage(color: status.nsColor, colorKey: status.colorHex, diameter: 9)
             button.imagePosition = .imageLeading
             button.attributedTitle = NSAttributedString(string: " " + latencyText, attributes: attributes)
 
@@ -177,7 +205,12 @@ public final class StatusBarController: NSObject {
         }
     }
 
-    private func makeDotImage(color: NSColor, diameter: CGFloat) -> NSImage {
+    private func cachedDotImage(color: NSColor, colorKey: UInt32, diameter: CGFloat) -> NSImage {
+        let key = (UInt64(colorKey) << 16) | UInt64(UInt16(diameter))
+        if let cached = dotImages[key] {
+            return cached
+        }
+
         let size = NSSize(width: diameter + 2, height: diameter + 2)
         let image = NSImage(size: size, flipped: false) { rect in
             let circleRect = NSRect(x: 1, y: 1, width: diameter, height: diameter)
@@ -187,6 +220,7 @@ public final class StatusBarController: NSObject {
             return true
         }
         image.isTemplate = false
+        dotImages[key] = image
         return image
     }
 }

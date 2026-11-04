@@ -36,9 +36,14 @@ public final class FloatingOverlayController {
         if let panel = panel, let hostingView = hostingView {
             hostingView.rootView = badgeView
             let fittingSize = hostingView.fittingSize
+            let targetWidth = max(36, fittingSize.width)
+            let targetHeight = max(24, fittingSize.height)
+
             var frame = panel.frame
-            frame.size = CGSize(width: max(36, fittingSize.width), height: max(24, fittingSize.height))
-            panel.setFrame(frame, display: true)
+            if abs(frame.width - targetWidth) > 1 || abs(frame.height - targetHeight) > 1 {
+                frame.size = CGSize(width: targetWidth, height: targetHeight)
+                panel.setFrame(frame, display: true)
+            }
             if !panel.isVisible {
                 panel.orderFrontRegardless()
             }

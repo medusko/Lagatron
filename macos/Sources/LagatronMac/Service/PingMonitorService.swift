@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import AppKit
 
 @MainActor
 public final class PingMonitorService: ObservableObject {
@@ -11,10 +12,49 @@ public final class PingMonitorService: ObservableObject {
     @Published public private(set) var history: [PingPoint] = []
     @Published public private(set) var latestPing: PingResult? = nil
 
+    // Precomputed rolling statistics to eliminate repeated O(N) calculations in SwiftUI views
+    @Published public private(set) var minPing: Float = 0
+    @Published public private(set) var maxPing: Float = 0
+    @Published public private(set) var avgPing: Float = 0
+    @Published public private(set) var validSamplesCount: Int = 0
+
     private var pingTask: Task<Void, Never>? = nil
+    private var sleepObserver: Any? = nil
+    private var wakeObserver: Any? = nil
+    private var lastObservedHost: String = ""
+    private var lastObservedInterval: Int = 0
+
     public var onPingUpdated: ((PingResult?) -> Void)?
 
-    private init() {}
+    private init() {
+        setupSleepWakeObservers()
+    }
+
+    private func setupSleepWakeObservers() {
+        sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self, self.prefs.isServiceRunning else { return }
+                self.recordInterruption(reason: "Sleep")
+                self.pausePingLoop()
+            }
+        }
+
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self, self.prefs.isServiceRunning else { return }
+                self.recordInterruption(reason: "Wake")
+                self.startPingLoop()
+            }
+        }
+    }
 
     public func start() {
         prefs.isServiceRunning = true
@@ -26,8 +66,7 @@ public final class PingMonitorService: ObservableObject {
     public func stop() {
         prefs.isServiceRunning = false
         recordInterruption(reason: "Stopped")
-        pingTask?.cancel()
-        pingTask = nil
+        pausePingLoop()
         onPingUpdated?(nil)
     }
 
@@ -40,30 +79,41 @@ public final class PingMonitorService: ObservableObject {
     }
 
     public func notifyConfigChanged() {
+        let activeHost = prefs.getActiveHost()
+        let activeInterval = prefs.intervalMs
+
+        if activeHost != lastObservedHost || activeInterval != lastObservedInterval {
+            if prefs.isServiceRunning {
+                recordInterruption(reason: "Target: \(activeHost)")
+                startPingLoop()
+            }
+        }
         onPingUpdated?(latestPing)
     }
 
-    private func startPingLoop() {
+    private func pausePingLoop() {
         pingTask?.cancel()
-        var currentHost = prefs.getActiveHost()
+        pingTask = nil
+    }
+
+    private func startPingLoop() {
+        pausePingLoop()
+
+        let host = prefs.getActiveHost()
+        let interval = prefs.intervalMs
+        lastObservedHost = host
+        lastObservedInterval = interval
 
         pingTask = Task { [weak self] in
             guard let self = self else { return }
-            while !Task.isCancelled && self.prefs.isServiceRunning {
-                let host = self.prefs.getActiveHost()
-                if host != currentHost {
-                    self.recordInterruption(reason: "Target: \(host)")
-                    currentHost = host
+
+            let stream = PingEngine.stream(host: host, intervalMs: interval)
+            for await result in stream {
+                if Task.isCancelled || !self.prefs.isServiceRunning {
+                    break
                 }
-
-                let result = await PingEngine.ping(host: host)
-                if Task.isCancelled || !self.prefs.isServiceRunning { break }
-
                 self.recordPing(result)
                 self.onPingUpdated?(result)
-
-                let intervalNs = UInt64(max(250, self.prefs.intervalMs)) * 1_000_000
-                try? await Task.sleep(nanoseconds: intervalNs)
             }
         }
     }
@@ -77,6 +127,7 @@ public final class PingMonitorService: ObservableObject {
             updated.removeFirst(updated.count - maxHistorySize)
         }
         history = updated
+        updateStatistics(history: updated)
     }
 
     public func recordInterruption(reason: String) {
@@ -87,11 +138,45 @@ public final class PingMonitorService: ObservableObject {
                 updated.removeFirst(updated.count - maxHistorySize)
             }
             history = updated
+            updateStatistics(history: updated)
+        }
+    }
+
+    private func updateStatistics(history: [PingPoint]) {
+        var minVal: Float = .greatestFiniteMagnitude
+        var maxVal: Float = 0
+        var sum: Float = 0
+        var count: Int = 0
+
+        for point in history {
+            if !point.isInterruption && point.latencyMs >= 0 {
+                let ms = point.latencyMs
+                if ms < minVal { minVal = ms }
+                if ms > maxVal { maxVal = ms }
+                sum += ms
+                count += 1
+            }
+        }
+
+        if count > 0 {
+            self.minPing = minVal
+            self.maxPing = maxVal
+            self.avgPing = sum / Float(count)
+            self.validSamplesCount = count
+        } else {
+            self.minPing = 0
+            self.maxPing = 0
+            self.avgPing = 0
+            self.validSamplesCount = 0
         }
     }
 
     public func clearHistory() {
         history = []
         latestPing = nil
+        minPing = 0
+        maxPing = 0
+        avgPing = 0
+        validSamplesCount = 0
     }
 }

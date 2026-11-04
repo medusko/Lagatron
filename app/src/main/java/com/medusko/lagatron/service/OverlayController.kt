@@ -14,8 +14,10 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.medusko.lagatron.R
 import com.medusko.lagatron.data.AppPreferences
+import com.medusko.lagatron.model.AppFont
 import com.medusko.lagatron.model.DisplayMode
 import com.medusko.lagatron.model.LatencyStatus
 import com.medusko.lagatron.model.PingResult
@@ -30,6 +32,16 @@ class OverlayController(private val context: Context) {
     private var dotIndicator: View? = null
     private var pingTextView: TextView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
+
+    // Cached styling state to avoid expensive view invalidations and resource loading on every ping
+    private var lastMode: DisplayMode? = null
+    private var lastFont: AppFont? = null
+    private var lastBold: Boolean? = null
+    private var lastItalic: Boolean? = null
+    private var lastShadow: Boolean? = null
+    private var lastFontSizeSp: Float? = null
+    private var lastStatusColor: Int = 0
+    private var lastPingText: String = ""
 
     private var initialX = 0
     private var initialY = 0
@@ -122,29 +134,99 @@ class OverlayController(private val context: Context) {
         try {
             windowManager.addView(view, params)
             context.registerComponentCallbacks(componentCallbacks)
-            updateMode(prefs.displayMode)
-        } catch (e: Exception) {
+            applyTypographyAndMode(prefs.displayMode, prefs.appFont, force = true)
+        } catch (_: Exception) {
             overlayView = null
         }
     }
 
-    fun updatePing(result: PingResult, mode: DisplayMode, font: com.medusko.lagatron.model.AppFont) {
+    fun applyTypographyAndMode(mode: DisplayMode, font: AppFont, force: Boolean = false) {
         val view = overlayView ?: return
-
         view.post {
-            updateMode(mode)
+            val bold = prefs.isBold
+            val italic = prefs.isItalic
+            val shadow = prefs.hasTextShadow
+            val size = prefs.fontSizeSp
 
+            if (!force &&
+                mode == lastMode &&
+                font == lastFont &&
+                bold == lastBold &&
+                italic == lastItalic &&
+                shadow == lastShadow &&
+                size == lastFontSizeSp
+            ) {
+                return@post
+            }
+
+            lastMode = mode
+            lastFont = font
+            lastBold = bold
+            lastItalic = italic
+            lastShadow = shadow
+            lastFontSizeSp = size
+
+            // Update mode visibility
+            when (mode) {
+                DisplayMode.DOT_ONLY -> {
+                    dotIndicator?.visibility = View.VISIBLE
+                    pingTextView?.visibility = View.GONE
+                }
+                DisplayMode.MS_ONLY -> {
+                    dotIndicator?.visibility = View.GONE
+                    pingTextView?.visibility = View.VISIBLE
+                }
+                DisplayMode.BOTH -> {
+                    dotIndicator?.visibility = View.VISIBLE
+                    pingTextView?.visibility = View.VISIBLE
+                }
+                DisplayMode.MONOCHROME_TEXT -> {
+                    dotIndicator?.visibility = View.GONE
+                    pingTextView?.visibility = View.VISIBLE
+                }
+            }
+
+            // Container background
             val isMonochrome = (mode == DisplayMode.MONOCHROME_TEXT)
-
-            // Update container background & border: removed in monochrome text mode
             containerView?.let { container ->
                 if (!isMonochrome) {
-                    container.background = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.bg_overlay)
+                    container.background = ContextCompat.getDrawable(context, R.drawable.bg_overlay)
                 } else {
                     container.background = null
                 }
             }
 
+            // Font & style
+            pingTextView?.let { tv ->
+                val style = when {
+                    bold && italic -> android.graphics.Typeface.BOLD_ITALIC
+                    bold -> android.graphics.Typeface.BOLD
+                    italic -> android.graphics.Typeface.ITALIC
+                    else -> android.graphics.Typeface.NORMAL
+                }
+                val baseTypeface = font.getTypeface(context)
+                tv.setTypeface(baseTypeface, style)
+                tv.textSize = size
+
+                if (shadow) {
+                    tv.setShadowLayer(2f, -1.5f, 1.5f, Color.argb(220, 0, 0, 0))
+                } else {
+                    tv.setShadowLayer(0f, 0f, 0f, 0)
+                }
+            }
+        }
+    }
+
+    fun updatePing(result: PingResult, mode: DisplayMode, font: AppFont) {
+        val view = overlayView ?: return
+
+        view.post {
+            // Check if typography or mode changed since last time
+            if (mode != lastMode || font != lastFont) {
+                applyTypographyAndMode(mode, font)
+            }
+
+            val isMonochrome = (mode == DisplayMode.MONOCHROME_TEXT)
             val currentStatus = result.statusForThresholds(
                 greenThresholdMs = prefs.greenThresholdMs,
                 orangeThresholdMs = prefs.orangeThresholdMs
@@ -160,36 +242,28 @@ class OverlayController(private val context: Context) {
                 0xFFFFFFFF.toInt()
             }
 
-            // Update dot indicator color
-            dotIndicator?.let { dot ->
-                val background = dot.background
-                if (background is GradientDrawable) {
-                    background.setColor(statusColorInt)
+            // Update dot indicator color only if color changed
+            if (statusColorInt != lastStatusColor) {
+                dotIndicator?.let { dot ->
+                    val background = dot.background
+                    if (background is GradientDrawable) {
+                        background.setColor(statusColorInt)
+                    }
                 }
             }
 
-            // Update ping text, font style & size
+            val formatted = result.formattedLatency(showMs = prefs.showMsUnit)
             pingTextView?.let { tv ->
-                tv.text = result.formattedLatency(showMs = prefs.showMsUnit)
-                tv.setTextColor(statusColorInt)
-
-                val style = when {
-                    prefs.isBold && prefs.isItalic -> android.graphics.Typeface.BOLD_ITALIC
-                    prefs.isBold -> android.graphics.Typeface.BOLD
-                    prefs.isItalic -> android.graphics.Typeface.ITALIC
-                    else -> android.graphics.Typeface.NORMAL
+                if (formatted != lastPingText) {
+                    tv.text = formatted
+                    lastPingText = formatted
                 }
-                val baseTypeface = font.getTypeface(context)
-                tv.setTypeface(baseTypeface, style)
-                tv.textSize = prefs.fontSizeSp
-
-                // Left / bottom 1px drop shadow
-                if (prefs.hasTextShadow) {
-                    tv.setShadowLayer(2f, -1.5f, 1.5f, android.graphics.Color.argb(220, 0, 0, 0))
-                } else {
-                    tv.setShadowLayer(0f, 0f, 0f, 0)
+                if (statusColorInt != lastStatusColor) {
+                    tv.setTextColor(statusColorInt)
                 }
             }
+
+            lastStatusColor = statusColorInt
         }
     }
 
@@ -204,27 +278,6 @@ class OverlayController(private val context: Context) {
         } catch (_: Exception) {}
     }
 
-    private fun updateMode(mode: DisplayMode) {
-        when (mode) {
-            DisplayMode.DOT_ONLY -> {
-                dotIndicator?.visibility = View.VISIBLE
-                pingTextView?.visibility = View.GONE
-            }
-            DisplayMode.MS_ONLY -> {
-                dotIndicator?.visibility = View.GONE
-                pingTextView?.visibility = View.VISIBLE
-            }
-            DisplayMode.BOTH -> {
-                dotIndicator?.visibility = View.VISIBLE
-                pingTextView?.visibility = View.VISIBLE
-            }
-            DisplayMode.MONOCHROME_TEXT -> {
-                dotIndicator?.visibility = View.GONE
-                pingTextView?.visibility = View.VISIBLE
-            }
-        }
-    }
-
     fun hide() {
         try {
             context.unregisterComponentCallbacks(componentCallbacks)
@@ -235,5 +288,9 @@ class OverlayController(private val context: Context) {
             } catch (_: Exception) {}
             overlayView = null
         }
+        lastMode = null
+        lastFont = null
+        lastStatusColor = 0
+        lastPingText = ""
     }
 }

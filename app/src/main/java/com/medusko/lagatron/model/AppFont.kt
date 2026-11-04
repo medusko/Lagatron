@@ -7,6 +7,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.res.ResourcesCompat
 import com.medusko.lagatron.R
+import java.util.concurrent.ConcurrentHashMap
 
 enum class AppFont(val title: String) {
     POPPINS("Poppins"),
@@ -15,15 +16,26 @@ enum class AppFont(val title: String) {
     CONDENSED("Condensed"),
     SERIF("Serif");
 
+    companion object {
+        private var cachedPoppinsFontFamily: FontFamily? = null
+        private val cachedTypefaces = ConcurrentHashMap<AppFont, Typeface>()
+    }
+
     fun getComposeFont(): FontFamily {
         return when (this) {
-            POPPINS -> try {
-                FontFamily(
-                    Font(R.font.poppins_regular, FontWeight.Normal),
-                    Font(R.font.poppins_bold, FontWeight.Bold)
-                )
-            } catch (_: Exception) {
-                FontFamily.SansSerif
+            POPPINS -> {
+                cachedPoppinsFontFamily ?: run {
+                    try {
+                        val family = FontFamily(
+                            Font(R.font.poppins_regular, FontWeight.Normal),
+                            Font(R.font.poppins_bold, FontWeight.Bold)
+                        )
+                        cachedPoppinsFontFamily = family
+                        family
+                    } catch (_: Exception) {
+                        FontFamily.SansSerif
+                    }
+                }
             }
             ROBOTO -> FontFamily.SansSerif
             MONOSPACE -> FontFamily.Monospace
@@ -33,16 +45,18 @@ enum class AppFont(val title: String) {
     }
 
     fun getTypeface(context: Context): Typeface {
-        return when (this) {
-            POPPINS -> try {
-                ResourcesCompat.getFont(context, R.font.poppins_regular) ?: Typeface.DEFAULT
-            } catch (_: Exception) {
-                Typeface.DEFAULT
+        return cachedTypefaces.getOrPut(this) {
+            when (this) {
+                POPPINS -> try {
+                    ResourcesCompat.getFont(context.applicationContext, R.font.poppins_regular) ?: Typeface.DEFAULT
+                } catch (_: Exception) {
+                    Typeface.DEFAULT
+                }
+                ROBOTO -> Typeface.SANS_SERIF
+                MONOSPACE -> Typeface.MONOSPACE
+                CONDENSED -> Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+                SERIF -> Typeface.SERIF
             }
-            ROBOTO -> Typeface.SANS_SERIF
-            MONOSPACE -> Typeface.MONOSPACE
-            CONDENSED -> Typeface.create("sans-serif-condensed", Typeface.NORMAL)
-            SERIF -> Typeface.SERIF
         }
     }
 }
