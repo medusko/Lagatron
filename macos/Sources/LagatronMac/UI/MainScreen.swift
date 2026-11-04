@@ -18,67 +18,85 @@ public struct MainScreen: View {
             VStack(spacing: 0) {
                 topBar
 
-                ScrollView(.vertical, showsIndicators: true) {
-                    VStack(spacing: 14) {
-                        targetSelectorCard
-                        pingGraphCard
-                        displayModeSelectorCard
-                        overlayPreviewCard
-                        floatingOverlayPositionCard
-                        startOnBootCard
-                        infoFooterCard
-                    }
-                    .padding(14)
+                if prefs.showAboutDialog {
+                    aboutScrollView
+                } else {
+                    mainSettingsScrollView
+                    bottomActionBar
                 }
-
-                bottomActionBar
-            }
-
-            if prefs.showAboutDialog {
-                aboutDialogOverlay
             }
         }
         .frame(minWidth: 420, idealWidth: 430, minHeight: 680, idealHeight: 740)
         .preferredColorScheme(prefs.isDarkMode ? .dark : .light)
     }
 
+    private var mainSettingsScrollView: some View {
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(spacing: 14) {
+                targetSelectorCard
+                pingGraphCard
+                displayModeSelectorCard
+                overlayPreviewCard
+                floatingOverlayPositionCard
+                startOnBootCard
+                infoFooterCard
+            }
+            .padding(14)
+        }
+    }
+
     // MARK: - Top App Bar
     private var topBar: some View {
         HStack(spacing: 10) {
-            Text("Lagatron")
-                .font(.system(size: 20, weight: .black))
-                .foregroundColor(theme.onSurface)
+            if prefs.showAboutDialog {
+                Button {
+                    prefs.showAboutDialog = false
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 13, weight: .bold))
+                        Text("About Lagatron")
+                            .font(.system(size: 16, weight: .black))
+                    }
+                    .foregroundColor(theme.onSurface)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text("Lagatron")
+                    .font(.system(size: 20, weight: .black))
+                    .foregroundColor(theme.onSurface)
 
-            let isRunning = prefs.isServiceRunning
-            let badgeColor = isRunning ? LagatronColors.pingGreen : LagatronColors.pingRed
+                let isRunning = prefs.isServiceRunning
+                let badgeColor = isRunning ? LagatronColors.pingGreen : LagatronColors.pingRed
 
-            HStack(spacing: 5) {
-                Circle()
-                    .fill(badgeColor)
-                    .frame(width: 7, height: 7)
-                Text(isRunning ? "ACTIVE" : "STOPPED")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(badgeColor)
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(badgeColor)
+                        .frame(width: 7, height: 7)
+                    Text(isRunning ? "ACTIVE" : "STOPPED")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(badgeColor)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(badgeColor.opacity(0.15))
+                .overlay(
+                    Capsule().stroke(badgeColor, lineWidth: 1)
+                )
+                .clipShape(Capsule())
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(badgeColor.opacity(0.15))
-            .overlay(
-                Capsule().stroke(badgeColor, lineWidth: 1)
-            )
-            .clipShape(Capsule())
 
             Spacer()
 
             Button {
-                prefs.showAboutDialog = true
+                prefs.showAboutDialog.toggle()
             } label: {
-                Image(systemName: "info.circle.fill")
+                Image(systemName: prefs.showAboutDialog ? "info.circle.fill" : "info.circle")
                     .font(.system(size: 16))
                     .foregroundColor(theme.primary)
             }
             .buttonStyle(.plain)
-            .help("About Lagatron")
+            .help(prefs.showAboutDialog ? "Back to Settings" : "About Lagatron & What's New")
 
             Button {
                 prefs.isDarkMode.toggle()
@@ -813,64 +831,390 @@ public struct MainScreen: View {
         }
     }
 
-    // MARK: - About Dialog
-    private var aboutDialogOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.55)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    prefs.showAboutDialog = false
+    // MARK: - About Screen (Full Page)
+    private var aboutScrollView: some View {
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(alignment: .leading, spacing: 14) {
+                // 1. HERO IDENTITY CARD
+                aboutSectionGroup(header: "APPLICATION") {
+                    HStack(spacing: 14) {
+                        Image(nsImage: loadAppIcon())
+                            .resizable()
+                            .interpolation(.high)
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 48, height: 48)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(theme.outline.opacity(0.8), lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 1.5)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
+                                Text("Lagatron")
+                                    .font(.system(size: 16, weight: .black, design: .rounded))
+                                    .foregroundColor(theme.onSurface)
+
+                                Text("macOS")
+                                    .font(.system(size: 10, weight: .black, design: .rounded))
+                                    .foregroundColor(theme.primary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(theme.primary.opacity(0.12))
+                                    .cornerRadius(6)
+                            }
+
+                            Text("Real-Time Subprocess ICMP & TCP Network Latency HUD")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(theme.onSurfaceVariant)
+                        }
+
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 3) {
+                            Text("v1.1-beta")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .foregroundColor(theme.primary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3.5)
+                                .background(theme.primary.opacity(0.12))
+                                .cornerRadius(7)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 7)
+                                        .stroke(theme.primary.opacity(0.35), lineWidth: 1)
+                                )
+
+                            Text("Build 2")
+                                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                .foregroundColor(theme.onSurfaceVariant)
+                        }
+                    }
+
+                    aboutRowDivider
+
+                    // Quick Diagnostic Status Bar
+                    HStack(spacing: 12) {
+                        let isRunning = prefs.isServiceRunning
+                        let activeHost = prefs.getActiveHost()
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(isRunning ? LagatronColors.pingGreen : LagatronColors.pingRed)
+                                .frame(width: 7, height: 7)
+                            Text(isRunning ? "Engine Active (\(activeHost))" : "Engine Idle")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(isRunning ? LagatronColors.pingGreen : LagatronColors.pingRed)
+                        }
+
+                        Spacer()
+
+                        HStack(spacing: 5) {
+                            Image(systemName: "timer")
+                                .font(.system(size: 10, weight: .bold))
+                            Text(String(format: "Interval: %.1fs", Double(prefs.intervalMs) / 1000.0))
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundColor(theme.onSurfaceVariant)
+
+                        HStack(spacing: 5) {
+                            Image(systemName: "cpu")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("Subprocess ICMP")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundColor(theme.onSurfaceVariant)
+                    }
+                    .padding(.top, 2)
                 }
 
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 8) {
-                    Image(systemName: "info.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(theme.primary)
-                    Text("About Lagatron")
-                        .font(.system(size: 16, weight: .heavy))
+                // 2. ARCHITECTURE & TELEMETRY ENGINE
+                aboutSectionGroup(header: "ZERO-OVERHEAD TELEMETRY") {
+                    Text("Lagatron is an ultra-lightweight telemetry HUD and macOS status bar monitor engineered to provide continuous, real-time round-trip latency visibility for network engineers, competitive gamers, and remote professionals.")
+                        .font(.system(size: 11.5))
                         .foregroundColor(theme.onSurface)
+                        .lineSpacing(2.5)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    aboutRowDivider
+
+                    VStack(alignment: .leading, spacing: 9) {
+                        aboutFeatureRow(
+                            icon: "bolt.fill",
+                            iconColor: Color.yellow,
+                            title: "Native Subprocess Streaming Engine",
+                            description: "Pipes high-efficiency native /sbin/ping streams asynchronously with sub-millisecond precision and zero kernel extension requirements."
+                        )
+
+                        aboutFeatureRow(
+                            icon: "menubar.rectangle",
+                            iconColor: theme.primary,
+                            title: "macOS Menu Bar HUD & Floating Overlay",
+                            description: "Provides live glanceable latency in your macOS top menu bar, alongside an optional draggable HUD overlay that stays pinned above full-screen apps."
+                        )
+
+                        aboutFeatureRow(
+                            icon: "gauge.with.needle.fill",
+                            iconColor: LagatronColors.pingGreen,
+                            title: "Adaptive Latency Thresholds",
+                            description: "Dynamically shifts visual styling across optimal (<50ms green), moderate (50-100ms amber), and degraded (>100ms red) thresholds to surface jitter instantly."
+                        )
+
+                        aboutFeatureRow(
+                            icon: "textformat",
+                            iconColor: Color.purple,
+                            title: "Dynamic Typography & Display Modes",
+                            description: "Supports 4 distinct display formats (Raw RTT, Delta Jitter, Dual Metrics, Icon-Only) and custom Poppins typography with dark/light theme switching."
+                        )
+
+                        aboutFeatureRow(
+                            icon: "battery.100.bolt",
+                            iconColor: Color.green,
+                            title: "Zero-Waste Power Management",
+                            description: "Engineered for all-day battery efficiency on Apple Silicon with event-driven background thread synchronization and zero polling loops."
+                        )
+
+                        aboutFeatureRow(
+                            icon: "arrow.triangle.2.circlepath",
+                            iconColor: LagatronColors.pingOrange,
+                            title: "Socket & TCP Fallback Mode",
+                            description: "Seamlessly transitions between ICMP echo requests and TCP socket probes with instant target switching across Google, Cloudflare, Quad9, or Custom IPs."
+                        )
+                    }
                 }
 
-                Text("About")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(theme.primary)
+                // 3. RELEASE NOTES & WHAT'S NEW
+                aboutSectionGroup(header: "RELEASE NOTES & WHAT'S NEW") {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Lagatron for macOS v1.1-beta")
+                                .font(.system(size: 12.5, weight: .bold))
+                                .foregroundColor(theme.onSurface)
+                            Text("Release Candidate • March 2026")
+                                .font(.system(size: 10.5))
+                                .foregroundColor(theme.onSurfaceVariant)
+                        }
 
-                Text("Lagatron is an ultra-lightweight telemetry HUD and macOS status bar monitor engineered to provide continuous, real-time round-trip latency visibility for network engineers, gamers, and power users.")
-                    .font(.system(size: 12.5))
-                    .foregroundColor(theme.onSurface)
-                    .fixedSize(horizontal: false, vertical: true)
+                        Spacer()
 
-                Text("Lagatron v1.1 • Native macOS Menu Bar Edition")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(theme.onSurfaceVariant.opacity(0.8))
+                        Text("Current Build")
+                            .font(.system(size: 10, weight: .heavy))
+                            .foregroundColor(LagatronColors.pingGreen)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(LagatronColors.pingGreen.opacity(0.12))
+                            .cornerRadius(6)
+                    }
 
-                HStack {
-                    Spacer()
-                    Button {
-                        prefs.showAboutDialog = false
-                    } label: {
-                        Text("Close")
-                            .font(.system(size: 13, weight: .bold))
+                    aboutRowDivider
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        whatsNewRow(
+                            title: "Subversion v1.1-beta Engine Tuning",
+                            detail: "Optimized ping parser pipeline with reduced regex overhead and faster socket fallback."
+                        )
+                        whatsNewRow(
+                            title: "Cross-Platform Parity with Keyboardy",
+                            detail: "Upgraded information screens and diagnostic telemetry cards across macOS and Android."
+                        )
+                        whatsNewRow(
+                            title: "Universal Apple Silicon & Intel",
+                            detail: "Full native binary support compiled with zero external runtime dependencies."
+                        )
+                        whatsNewRow(
+                            title: "Enhanced Floating HUD",
+                            detail: "Smoother drag gesture tracking and auto-saving window coordinates across reboots."
+                        )
+                        whatsNewRow(
+                            title: "Automated GitHub Releases",
+                            detail: "Automated multi-platform GitHub Releases with verifiable SHA-256 checksums."
+                        )
+                    }
+                }
+
+                // 4. QUICK ACTIONS & LINKS
+                aboutSectionGroup(header: "LINKS & RESOURCES") {
+                    HStack(spacing: 8) {
+                        aboutLinkButton(
+                            title: "Full Changelog",
+                            icon: "doc.text.magnifyingglass",
+                            url: "https://github.com/medusko/Lagatron/blob/main/CHANGELOG.md"
+                        )
+
+                        aboutLinkButton(
+                            title: "All Releases",
+                            icon: "arrow.down.circle",
+                            url: "https://github.com/medusko/Lagatron/releases"
+                        )
+
+                        aboutLinkButton(
+                            title: "Source Code",
+                            icon: "curlybraces",
+                            url: "https://github.com/medusko/Lagatron"
+                        )
+                    }
+
+                    aboutRowDivider
+
+                    HStack(spacing: 8) {
+                        Button {
+                            prefs.showAboutDialog = false
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.left")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text("Back to Telemetry Monitor")
+                                    .font(.system(size: 11, weight: .bold))
+                            }
                             .foregroundColor(theme.primary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
                             .background(theme.surfaceVariant)
                             .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(theme.outline, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        Spacer()
+
+                        Button {
+                            if let url = URL(string: "https://github.com/medusko/Lagatron/issues") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "bubble.left.and.exclamationmark.bubble.right")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text("Report Issue")
+                                    .font(.system(size: 11, weight: .bold))
+                            }
+                            .foregroundColor(theme.onSurfaceVariant)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(theme.surfaceVariant)
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(theme.outline, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+
+                // 5. FOOTER
+                HStack {
+                    Spacer()
+                    Text("Designed & Engineered by Medusko • Lagatron v1.1-beta (Build 2)")
+                        .font(.system(size: 9.5, weight: .medium))
+                        .foregroundColor(theme.onSurfaceVariant.opacity(0.8))
+                    Spacer()
+                }
+                .padding(.top, 4)
+                .padding(.bottom, 6)
             }
-            .padding(20)
-            .frame(width: 340)
+            .padding(14)
+        }
+    }
+
+    private func loadAppIcon() -> NSImage {
+        if let img = NSApp.applicationIconImage {
+            return img
+        }
+        return NSImage(systemSymbolName: "waveform.path.ecg", accessibilityDescription: nil) ?? NSImage()
+    }
+
+    private var aboutRowDivider: some View {
+        Rectangle()
+            .frame(height: 1)
+            .foregroundColor(theme.outline.opacity(0.8))
+    }
+
+    private func aboutSectionGroup<Content: View>(header: String? = nil, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let header = header {
+                Text(header)
+                    .font(.system(size: 10.5, weight: .heavy))
+                    .foregroundColor(theme.onSurfaceVariant)
+                    .tracking(0.8)
+                    .padding(.leading, 2)
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                content()
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(theme.surface)
-            .cornerRadius(18)
+            .cornerRadius(12)
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: 12)
                     .stroke(theme.outline, lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.4), radius: 16, x: 0, y: 8)
         }
+    }
+
+    private func aboutFeatureRow(icon: String, iconColor: Color, title: String, description: String) -> some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(iconColor)
+                .frame(width: 18, height: 18)
+                .padding(4)
+                .background(iconColor.opacity(0.12))
+                .cornerRadius(6)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 11.5, weight: .bold))
+                    .foregroundColor(theme.onSurface)
+                Text(description)
+                    .font(.system(size: 10.5))
+                    .foregroundColor(theme.onSurfaceVariant)
+                    .lineSpacing(1.5)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func whatsNewRow(title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(theme.onSurface)
+            Text(detail)
+                .font(.system(size: 10))
+                .foregroundColor(theme.onSurfaceVariant)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, 1)
+    }
+
+    private func aboutLinkButton(title: String, icon: String, url: String) -> some View {
+        Button {
+            if let targetUrl = URL(string: url) {
+                NSWorkspace.shared.open(targetUrl)
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 10.5, weight: .bold))
+                Text(title)
+                    .font(.system(size: 11, weight: .bold))
+            }
+            .foregroundColor(theme.primary)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity)
+            .background(theme.surfaceVariant)
+            .cornerRadius(7)
+            .overlay(
+                RoundedRectangle(cornerRadius: 7)
+                    .stroke(theme.outline, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
