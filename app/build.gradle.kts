@@ -12,10 +12,12 @@ android {
         applicationId = "com.medusko.lagatron.debug"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.1-RC1"
+        versionCode = 4
+        versionName = "1.1-RC1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("Boolean", "SHOW_ADS", "false")
     }
 
     buildTypes {
@@ -38,6 +40,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

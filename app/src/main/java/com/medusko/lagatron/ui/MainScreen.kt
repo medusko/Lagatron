@@ -518,7 +518,7 @@ private fun AboutLagatronDialog(
                                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
                                     ) {
                                         Text(
-                                            text = "v1.1-RC1",
+                                            text = "v1.1-RC1.1",
                                             fontWeight = FontWeight.Bold,
                                             fontFamily = FontFamily.Monospace,
                                             fontSize = 11.sp,
@@ -527,7 +527,7 @@ private fun AboutLagatronDialog(
                                         )
                                     }
                                     Text(
-                                        text = "Build 3",
+                                        text = "Build 4",
                                         fontWeight = FontWeight.Bold,
                                         fontFamily = FontFamily.Monospace,
                                         fontSize = 9.5.sp,
@@ -659,13 +659,25 @@ private fun AboutLagatronDialog(
                                 verticalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 Text(
-                                    text = "• Release Candidate 1 Final Optimizations",
+                                    text = "• Release Candidate 1.1: Dual distribution & open-source prep",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "• Cross-platform information parity with Keyboardy",
+                                    text = "• Compile-time architecture flags & Google Play compliance",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "• Community support & GitHub Sponsor resource links",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "• Cross-platform information parity with Keyboardy & HotBoi",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -678,12 +690,6 @@ private fun AboutLagatronDialog(
                                 )
                                 Text(
                                     text = "• Draggable floating overlay coordinate persistence across orientation switches",
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "• Automated multi-platform GitHub Releases with SHA-256 checksums",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -704,32 +710,38 @@ private fun AboutLagatronDialog(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             AboutResourceLink(
-                                text = "Full Changelog ↗",
+                                text = "Changelog ↗",
                                 modifier = Modifier.weight(1f)
                             ) {
                                 uriHandler.openUri("https://github.com/medusko/Lagatron/blob/main/CHANGELOG.md")
                             }
                             AboutResourceLink(
-                                text = "All Releases ↗",
+                                text = "Releases ↗",
                                 modifier = Modifier.weight(1f)
                             ) {
                                 uriHandler.openUri("https://github.com/medusko/Lagatron/releases")
                             }
                             AboutResourceLink(
-                                text = "Source Code ↗",
+                                text = "Source ↗",
                                 modifier = Modifier.weight(1f)
                             ) {
                                 uriHandler.openUri("https://github.com/medusko/Lagatron")
+                            }
+                            AboutResourceLink(
+                                text = "Sponsor ☕ ↗",
+                                modifier = Modifier.weight(1.1f)
+                            ) {
+                                uriHandler.openUri("https://github.com/sponsors/Zlatty")
                             }
                         }
                     }
 
                     // 5. FOOTER
                     Text(
-                        text = "Lagatron v1.1-RC1 (Build 3) • Release Candidate 1 • Built for Android 15 / Pixel • Designed & Engineered by Medusko",
+                        text = "Lagatron v1.1-RC1.1 (Build 4) • Release Candidate 1.1 • Built for Android 15 / Pixel • Designed & Engineered by Medusko",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
