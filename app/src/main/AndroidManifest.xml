@@ -18,6 +18,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Lagatron">
 
+        <!-- Google AdMob Application ID -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-9364532905929549~2917421224" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
