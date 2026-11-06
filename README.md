@@ -4,15 +4,33 @@ Lagatron is an ultra-lightweight, real-time network latency monitor for **Androi
 
 ---
 
-## 📥 Downloads (Latest Release v1.1-beta)
+## 📥 Downloads & Installation
 
-Grab the latest pre-built binaries from the **[GitHub Releases page](https://github.com/medusko/Lagatron/releases/tag/v1.1-beta)**:
+### 🍺 Install via Homebrew (macOS)
+
+The fastest and easiest way to install and keep Lagatron updated on macOS:
+
+```bash
+brew install --cask medusko/tap/lagatron
+```
+
+*Or add the tap first:*
+```bash
+brew tap medusko/tap
+brew install --cask lagatron
+```
+
+---
+
+### 📦 Pre-built Binaries (GitHub Releases)
+
+Grab the latest pre-built binaries from the **[GitHub Releases page](https://github.com/medusko/Lagatron/releases)**:
 
 | Platform | Download | Requirements | Size |
 | :--- | :--- | :--- | :--- |
-| 📱 **Android** | [`Lagatron-v1.1-beta.apk`](https://github.com/medusko/Lagatron/releases/download/v1.1-beta/Lagatron-v1.1-beta.apk) | Android 8.0+ (API 26 – Android 15+) | **1.3 MB** |
-| 🍎 **macOS (DMG)** | [`Lagatron-macOS-v1.1-beta.dmg`](https://github.com/medusko/Lagatron/releases/download/v1.1-beta/Lagatron-macOS-v1.1-beta.dmg) | macOS 13.0+ (Ventura / Sonoma / Sequoia+) | **1.5 MB** |
-| 🍎 **macOS (ZIP)** | [`Lagatron-macOS-v1.1-beta.zip`](https://github.com/medusko/Lagatron/releases/download/v1.1-beta/Lagatron-macOS-v1.1-beta.zip) | macOS 13.0+ (`Lagatron.app` bundle) | **1.2 MB** |
+| 📱 **Android** | [`Lagatron-v1.1-RC1.1.apk`](https://github.com/medusko/Lagatron/releases/download/v1.1-RC1.1/Lagatron-v1.1-RC1.1.apk) | Android 8.0+ (API 26 – Android 15+) | **1.4 MB** |
+| 🍎 **macOS (DMG)** | [`Lagatron-macOS-v1.1-RC1.1.dmg`](https://github.com/medusko/Lagatron/releases/download/v1.1-RC1.1/Lagatron-macOS-v1.1-RC1.1.dmg) | macOS 13.0+ (Ventura / Sonoma / Sequoia+) | **1.7 MB** |
+| 🍎 **macOS (ZIP)** | [`Lagatron-macOS-v1.1-RC1.1.zip`](https://github.com/medusko/Lagatron/releases/download/v1.1-RC1.1/Lagatron-macOS-v1.1-RC1.1.zip) | macOS 13.0+ (`Lagatron.app` bundle) | **1.3 MB** |
 
 ---
 
@@ -59,7 +77,17 @@ Built natively with **Swift, SwiftUI, and AppKit** for ultra-low memory and CPU 
   - **Right-click** the menu bar item for quick actions (`Start/Stop Monitor`, `Show/Hide On-Screen Floating HUD`, `Open Settings`, `Quit`).
 - **Optional Draggable Floating HUD (`NSPanel`)**: Enable an always-on-top, non-activating floating pill (`NSWindow.Level.statusBar` + `.fullScreenAuxiliary`) that stays visible even over full-screen games and apps. Drag it anywhere on screen or fine-tune its coordinates with the D-Pad nudger and placement presets.
 
-### Building & Installing on macOS
+### 🍏 Installing & Building on macOS
+
+#### Option 1: Homebrew (Recommended)
+```bash
+brew install --cask medusko/tap/lagatron
+```
+
+#### Option 2: Pre-built DMG / ZIP
+Download `Lagatron-macOS-v1.1-RC1.1.dmg` from [GitHub Releases](https://github.com/medusko/Lagatron/releases), mount the DMG, and drag `Lagatron.app` into `/Applications`.
+
+#### Option 3: Build from Source
 ```bash
 ./macos/build-app.sh
 cp -R macos/build/Lagatron.app /Applications/
