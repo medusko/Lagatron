@@ -26,7 +26,12 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -154,20 +159,46 @@ fun TargetSelector(
 
             Spacer(modifier = Modifier.height(14.dp))
 
+            var sliderPos by remember(intervalMs) { mutableFloatStateOf(intervalMs / 1000f) }
+
             // Ping Frequency Slider (.5 to 60 seconds)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Ping Frequency",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (intervalMs != 1000L || sliderPos != 1.0f) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                            modifier = Modifier.clickable {
+                                sliderPos = 1.0f
+                                onIntervalChanged(1000L)
+                            }
+                        ) {
+                            Text(
+                                text = "Reset",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
                 Text(
-                    text = "Ping Frequency",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = String.format(Locale.US, "%.1f sec", intervalMs / 1000f),
+                    text = String.format(Locale.US, "%.1f sec", sliderPos),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
@@ -176,9 +207,12 @@ fun TargetSelector(
             }
 
             Slider(
-                value = (intervalMs / 1000f).coerceIn(0.5f, 60.0f),
+                value = sliderPos.coerceIn(0.5f, 60.0f),
                 onValueChange = { newVal ->
-                    val roundedMs = (Math.round(newVal * 2.0) / 2.0 * 1000.0).toLong()
+                    sliderPos = (Math.round(newVal * 2.0) / 2.0).toFloat()
+                },
+                onValueChangeFinished = {
+                    val roundedMs = (Math.round(sliderPos * 2.0) / 2.0 * 1000.0).toLong()
                     onIntervalChanged(roundedMs)
                 },
                 valueRange = 0.5f..60.0f,

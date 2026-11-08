@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -36,6 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -117,6 +119,7 @@ fun MainScreen(
     onSwitchOrientation: (toLandscape: Boolean) -> Unit,
     intervalMs: Long = 1000L,
     onIntervalChanged: (Long) -> Unit = {},
+    onManualRefresh: () -> Unit = {},
     onToggleService: () -> Unit
 ) {
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -200,29 +203,59 @@ fun MainScreen(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Button(
-                    onClick = onToggleService,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isRunning) PingRed else MaterialTheme.colorScheme.primary,
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(14.dp),
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
-                        .height(52.dp)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = if (isRunning) Icons.Default.Stop else Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (isRunning) "Stop Overlay" else "Start Overlay ($activeHost)",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (isRunning) {
+                        OutlinedButton(
+                            onClick = onManualRefresh,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.height(52.dp),
+                            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Refresh",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = onToggleService,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isRunning) PingRed else MaterialTheme.colorScheme.primary,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isRunning) Icons.Default.Stop else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isRunning) "Stop Overlay" else "Start Overlay ($activeHost)",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }

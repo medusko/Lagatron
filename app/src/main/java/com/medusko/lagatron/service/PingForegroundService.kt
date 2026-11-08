@@ -35,6 +35,7 @@ class PingForegroundService : Service() {
 
         const val ACTION_START = "com.medusko.lagatron.ACTION_START"
         const val ACTION_STOP = "com.medusko.lagatron.ACTION_STOP"
+        const val ACTION_MANUAL_REFRESH = "com.medusko.lagatron.ACTION_MANUAL_REFRESH"
         const val ACTION_UPDATE_CONFIG = "com.medusko.lagatron.ACTION_UPDATE_CONFIG"
         const val ACTION_UPDATE_POSITION = "com.medusko.lagatron.ACTION_UPDATE_POSITION"
 
@@ -47,6 +48,13 @@ class PingForegroundService : Service() {
             } else {
                 context.startService(intent)
             }
+        }
+
+        fun manualRefresh(context: Context) {
+            val intent = Intent(context, PingForegroundService::class.java).apply {
+                action = ACTION_MANUAL_REFRESH
+            }
+            context.startService(intent)
         }
 
         fun stop(context: Context) {
@@ -83,6 +91,7 @@ class PingForegroundService : Service() {
     // Cached notification artifacts
     private var openAppPendingIntent: PendingIntent? = null
     private var stopPendingIntent: PendingIntent? = null
+    private var refreshPendingIntent: PendingIntent? = null
     private var notificationBuilder: NotificationCompat.Builder? = null
     private var lastNotifiedStatus: LatencyStatus? = null
     private var lastNotifiedHost: String = ""
@@ -142,12 +151,32 @@ class PingForegroundService : Service() {
             stopIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
+        val refreshIntent = Intent(this, PingForegroundService::class.java).apply {
+            action = ACTION_MANUAL_REFRESH
+        }
+        refreshPendingIntent = PendingIntent.getService(
+            this,
+            2,
+            refreshIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
                 stopMonitoring()
+            }
+            ACTION_MANUAL_REFRESH -> {
+                serviceScope.launch {
+                    val host = prefs.getActiveHost()
+                    val result = PingEngine.ping(host)
+                    lastResult = result
+                    PingHistoryRepository.recordPing(result)
+                    overlayController.updatePing(result, prefs.displayMode, prefs.appFont)
+                    throttledUpdateNotification(result)
+                }
             }
             ACTION_UPDATE_POSITION -> {
                 val x = intent.getIntExtra("x", prefs.overlayX)
@@ -199,6 +228,9 @@ class PingForegroundService : Service() {
         pausePingLoop()
         val host = prefs.getActiveHost()
         val interval = prefs.intervalMs
+        if (host != lastNotifiedHost && lastNotifiedHost.isNotEmpty()) {
+            PingHistoryRepository.recordInterruption("Target: $host")
+        }
         lastNotifiedHost = host
         lastNotifiedInterval = interval
 
@@ -250,6 +282,7 @@ class PingForegroundService : Service() {
             .setContentIntent(openAppPendingIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .addAction(R.drawable.ic_notification, getString(R.string.action_refresh), refreshPendingIntent)
             .addAction(R.drawable.ic_notification, getString(R.string.action_stop), stopPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .also { notificationBuilder = it }

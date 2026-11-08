@@ -16,7 +16,7 @@ public final class StatusBarController: NSObject {
     private var lastRenderedRunning: Bool = false
 
     public override init() {
-        self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        self.statusItem = NSStatusBar.system.statusItem(withLength: 66)
         self.popover = NSPopover()
         super.init()
 
@@ -37,6 +37,7 @@ public final class StatusBarController: NSObject {
         button.target = self
         button.action = #selector(handleStatusBarClick(_:))
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        button.alignment = .center
     }
 
     @objc private func handleStatusBarClick(_ sender: NSStatusBarButton) {
@@ -120,6 +121,24 @@ public final class StatusBarController: NSObject {
     public func updateStatusBar(with result: PingResult?) {
         guard let button = statusItem.button else { return }
 
+        let mode = prefs.displayMode
+        let targetLength: CGFloat = {
+            if !prefs.isServiceRunning {
+                return 58
+            }
+            switch mode {
+            case .dotOnly:
+                return 28
+            case .msOnly, .monochromeText:
+                return 58
+            case .both:
+                return 66
+            }
+        }()
+        if statusItem.length != targetLength {
+            statusItem.length = targetLength
+        }
+
         if !prefs.isServiceRunning {
             if lastRenderedRunning == false && lastRenderedText == "OFF" {
                 return
@@ -140,7 +159,6 @@ public final class StatusBarController: NSObject {
             return
         }
 
-        let mode = prefs.displayMode
         let isMonochrome = (mode == .monochromeText)
         let status = result?.statusForThresholds(
             greenThresholdMs: prefs.greenThresholdMs,

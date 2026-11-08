@@ -180,11 +180,26 @@ public struct MainScreen: View {
 
                 // Ping Frequency Slider (.5 to 60 seconds)
                 VStack(alignment: .leading, spacing: 6) {
-                    HStack {
+                    HStack(spacing: 8) {
                         Text("Ping Frequency")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(theme.onSurface)
                         Spacer()
+                        if prefs.intervalMs != 1000 {
+                            Button(action: {
+                                prefs.intervalMs = 1000
+                                monitor.notifyConfigChanged()
+                            }) {
+                                Text("Reset")
+                                    .font(.system(size: 10.5, weight: .bold))
+                                    .foregroundColor(theme.primary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(theme.surfaceVariant)
+                                    .cornerRadius(4)
+                            }
+                            .buttonStyle(.plain)
+                        }
                         Text(String(format: "%.1f sec", Double(prefs.intervalMs) / 1000.0))
                             .font(.system(size: 12.5, weight: .bold, design: .monospaced))
                             .foregroundColor(theme.primary)
@@ -195,11 +210,15 @@ public struct MainScreen: View {
                             get: { Double(prefs.intervalMs) / 1000.0 },
                             set: { newValue in
                                 prefs.intervalMs = Int(newValue * 1000.0)
-                                monitor.notifyConfigChanged()
                             }
                         ),
                         in: 0.5...60.0,
-                        step: 0.5
+                        step: 0.5,
+                        onEditingChanged: { isEditing in
+                            if !isEditing {
+                                monitor.notifyConfigChanged()
+                            }
+                        }
                     )
                     .tint(theme.primary)
 

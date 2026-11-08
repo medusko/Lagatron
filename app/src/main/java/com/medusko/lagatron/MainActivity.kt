@@ -120,6 +120,7 @@ class MainActivity : ComponentActivity() {
                     onPresetSelected = { preset ->
                         selectedPreset = preset
                         prefs.selectedPreset = preset
+                        com.medusko.lagatron.data.PingHistoryRepository.recordInterruption("Target: ${preset.title}")
                         if (isRunning) {
                             PingForegroundService.updateConfig(this)
                         }
@@ -127,6 +128,7 @@ class MainActivity : ComponentActivity() {
                     onCustomHostChanged = { host ->
                         customHost = host
                         prefs.customHost = host
+                        com.medusko.lagatron.data.PingHistoryRepository.recordInterruption("Target: $host")
                         if (isRunning) {
                             PingForegroundService.updateConfig(this)
                         }
@@ -229,6 +231,11 @@ class MainActivity : ComponentActivity() {
                             stopOverlayService()
                         } else {
                             requestPermissionsAndStart()
+                        }
+                    },
+                    onManualRefresh = {
+                        if (isRunning) {
+                            PingForegroundService.manualRefresh(this)
                         }
                     }
                 )
