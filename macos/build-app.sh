@@ -17,6 +17,8 @@ BIN_PATH="$(swift build -c release --show-bin-path)"
 EXECUTABLE="$BIN_PATH/LagatronMac"
 
 echo "==> Creating ${APP_NAME}.app bundle..."
+mkdir -p "$SCRIPT_DIR/build"
+touch "$SCRIPT_DIR/build/.metadata_never_index"
 rm -rf "$BUNDLE_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
@@ -32,8 +34,11 @@ fi
 cp "$SCRIPT_DIR/Sources/LagatronMac/Resources/poppins_regular.ttf" "$RESOURCES_DIR/"
 cp "$SCRIPT_DIR/Sources/LagatronMac/Resources/poppins_bold.ttf" "$RESOURCES_DIR/"
 
-# Generate AppIcon.icns from Android ic_launcher-web.png if available
-SRC_ICON="$REPO_ROOT/app/src/main/ic_launcher-web.png"
+# Copy Gold AppIcon into Resources
+cp "$SCRIPT_DIR/Resources/AppIconGold.png" "$RESOURCES_DIR/AppIconGold.png"
+
+# Generate AppIcon.icns from the new Gold RC2 icon
+SRC_ICON="$SCRIPT_DIR/Resources/AppIconGold.png"
 if [ -f "$SRC_ICON" ] && command -v sips >/dev/null 2>&1 && command -v iconutil >/dev/null 2>&1; then
     ICONSET_DIR="$SCRIPT_DIR/build/AppIcon.iconset"
     rm -rf "$ICONSET_DIR"

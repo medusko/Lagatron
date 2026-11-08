@@ -86,6 +86,7 @@ class PingForegroundService : Service() {
     private var notificationBuilder: NotificationCompat.Builder? = null
     private var lastNotifiedStatus: LatencyStatus? = null
     private var lastNotifiedHost: String = ""
+    private var lastNotifiedInterval: Long = 1000L
     private var lastNotificationTimeMs: Long = 0
 
     // Screen State Receiver to save battery when screen is locked/off
@@ -158,8 +159,8 @@ class PingForegroundService : Service() {
                 lastResult?.let {
                     overlayController.updatePing(it, prefs.displayMode, prefs.appFont)
                 }
-                // Check if host changed
-                if (prefs.getActiveHost() != lastNotifiedHost && prefs.isServiceRunning) {
+                // Check if host or interval changed
+                if ((prefs.getActiveHost() != lastNotifiedHost || prefs.intervalMs != lastNotifiedInterval) && prefs.isServiceRunning) {
                     startPingLoop()
                 }
             }
@@ -199,6 +200,7 @@ class PingForegroundService : Service() {
         val host = prefs.getActiveHost()
         val interval = prefs.intervalMs
         lastNotifiedHost = host
+        lastNotifiedInterval = interval
 
         pingJob = serviceScope.launch {
             PingEngine.stream(host, interval).collect { result ->

@@ -1,7 +1,9 @@
 package com.medusko.lagatron.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -42,13 +44,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -224,41 +235,27 @@ fun PositionAdjuster(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Column 1: D-Pad Nudge Controls
+                // Column 1: D-Pad Nudge Controls (5px steps with haptic hold-to-repeat)
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    FilledTonalIconButton(
-                        onClick = { onPositionChanged(isLandscapeTab, currentX, (currentY - 25).coerceAtLeast(0)) },
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        modifier = Modifier.size(42.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowUp,
-                            contentDescription = "Move Up"
-                        )
-                    }
+                    RepeatingNudgeButton(
+                        onClick = { onPositionChanged(isLandscapeTab, currentX, (currentY - 5).coerceAtLeast(0)) },
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Move Up"
+                    )
 
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(vertical = 4.dp)
                     ) {
-                        FilledTonalIconButton(
-                            onClick = { onPositionChanged(isLandscapeTab, (currentX - 25).coerceAtLeast(0), currentY) },
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            modifier = Modifier.size(42.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                                contentDescription = "Move Left"
-                            )
-                        }
+                        RepeatingNudgeButton(
+                            onClick = { onPositionChanged(isLandscapeTab, (currentX - 5).coerceAtLeast(0), currentY) },
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                            contentDescription = "Move Left"
+                        )
 
                         Icon(
                             imageVector = Icons.Default.OpenWith,
@@ -267,32 +264,18 @@ fun PositionAdjuster(
                             modifier = Modifier.size(20.dp)
                         )
 
-                        FilledTonalIconButton(
-                            onClick = { onPositionChanged(isLandscapeTab, currentX + 25, currentY) },
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            modifier = Modifier.size(42.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = "Move Right"
-                            )
-                        }
-                    }
-
-                    FilledTonalIconButton(
-                        onClick = { onPositionChanged(isLandscapeTab, currentX, currentY + 25) },
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        modifier = Modifier.size(42.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Move Down"
+                        RepeatingNudgeButton(
+                            onClick = { onPositionChanged(isLandscapeTab, currentX + 5, currentY) },
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "Move Right"
                         )
                     }
+
+                    RepeatingNudgeButton(
+                        onClick = { onPositionChanged(isLandscapeTab, currentX, currentY + 5) },
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Move Down"
+                    )
                 }
 
                 // Column 2: Coordinate Display & Reset Card
@@ -375,6 +358,52 @@ fun PositionAdjuster(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RepeatingNudgeButton(
+    onClick: () -> Unit,
+    imageVector: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    modifier: Modifier = Modifier
+) {
+    val haptic = LocalHapticFeedback.current
+    val currentOnClick by rememberUpdatedState(onClick)
+    val scope = rememberCoroutineScope()
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+        modifier = modifier
+            .size(42.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        currentOnClick()
+                        val job = scope.launch {
+                            delay(350L)
+                            while (isActive) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                currentOnClick()
+                                delay(65L)
+                            }
+                        }
+                        tryAwaitRelease()
+                        job.cancel()
+                    }
+                )
+            }
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

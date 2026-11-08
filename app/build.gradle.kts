@@ -22,8 +22,8 @@ android {
         applicationId = "com.medusko.lagatron"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.1-RC1.1"
+        versionCode = 6
+        versionName = "1.1-RC2-Beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

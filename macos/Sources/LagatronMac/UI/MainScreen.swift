@@ -39,7 +39,6 @@ public struct MainScreen: View {
                 overlayPreviewCard
                 floatingOverlayPositionCard
                 startOnBootCard
-                infoFooterCard
             }
             .padding(14)
         }
@@ -178,6 +177,47 @@ public struct MainScreen: View {
                             .stroke(theme.primary.opacity(0.7), lineWidth: 1)
                     )
                 }
+
+                // Ping Frequency Slider (.5 to 60 seconds)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Ping Frequency")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(theme.onSurface)
+                        Spacer()
+                        Text(String(format: "%.1f sec", Double(prefs.intervalMs) / 1000.0))
+                            .font(.system(size: 12.5, weight: .bold, design: .monospaced))
+                            .foregroundColor(theme.primary)
+                    }
+
+                    Slider(
+                        value: Binding(
+                            get: { Double(prefs.intervalMs) / 1000.0 },
+                            set: { newValue in
+                                prefs.intervalMs = Int(newValue * 1000.0)
+                                monitor.notifyConfigChanged()
+                            }
+                        ),
+                        in: 0.5...60.0,
+                        step: 0.5
+                    )
+                    .tint(theme.primary)
+
+                    HStack {
+                        Text("0.5s")
+                            .font(.system(size: 10))
+                            .foregroundColor(theme.onSurfaceVariant)
+                        Spacer()
+                        Text("1.0s (Default)")
+                            .font(.system(size: 10))
+                            .foregroundColor(theme.onSurfaceVariant)
+                        Spacer()
+                        Text("60.0s")
+                            .font(.system(size: 10))
+                            .foregroundColor(theme.onSurfaceVariant)
+                    }
+                }
+                .padding(.top, 4)
             }
         }
     }
@@ -663,25 +703,25 @@ public struct MainScreen: View {
                     }
 
                     HStack(spacing: 16) {
-                        // D-Pad Nudge Controls
+                        // D-Pad Nudge Controls (5px per tap)
                         VStack(spacing: 4) {
                             NudgeButton(icon: "chevron.up", theme: theme) {
-                                updateFloatingPosition(x: prefs.overlayX, y: max(0, prefs.overlayY - 25))
+                                updateFloatingPosition(x: prefs.overlayX, y: max(0, prefs.overlayY - 5))
                             }
                             HStack(spacing: 6) {
                                 NudgeButton(icon: "chevron.left", theme: theme) {
-                                    updateFloatingPosition(x: max(0, prefs.overlayX - 25), y: prefs.overlayY)
+                                    updateFloatingPosition(x: max(0, prefs.overlayX - 5), y: prefs.overlayY)
                                 }
                                 Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
                                     .font(.system(size: 14))
                                     .foregroundColor(theme.primary)
                                     .frame(width: 24, height: 24)
                                 NudgeButton(icon: "chevron.right", theme: theme) {
-                                    updateFloatingPosition(x: prefs.overlayX + 25, y: prefs.overlayY)
+                                    updateFloatingPosition(x: prefs.overlayX + 5, y: prefs.overlayY)
                                 }
                             }
                             NudgeButton(icon: "chevron.down", theme: theme) {
-                                updateFloatingPosition(x: prefs.overlayX, y: prefs.overlayY + 25)
+                                updateFloatingPosition(x: prefs.overlayX, y: prefs.overlayY + 5)
                             }
                         }
                         .frame(maxWidth: .infinity)
@@ -1055,36 +1095,24 @@ public struct MainScreen: View {
 
                     aboutRowDivider
 
-                    // Contact Details
-                    VStack(alignment: .leading, spacing: 5) {
-                        HStack {
-                            Text("Website:")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(theme.muted)
-                                .frame(width: 60, alignment: .leading)
-                            Link("medusko.com", destination: URL(string: "https://medusko.com")!)
-                                .font(.system(size: 11, weight: .bold))
-                        }
-                        HStack {
-                            Text("Support:")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(theme.muted)
-                                .frame(width: 60, alignment: .leading)
-                            Link("support@medusko.com", destination: URL(string: "mailto:support@medusko.com")!)
-                                .font(.system(size: 11, weight: .bold))
-                        }
-                        HStack {
-                            Text("Social:")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(theme.muted)
-                                .frame(width: 60, alignment: .leading)
-                            Link("@meduskodev on Twitter", destination: URL(string: "https://twitter.com/meduskodev")!)
-                                .font(.system(size: 11, weight: .bold))
-                        }
+                    HStack(spacing: 8) {
+                        aboutLinkButton(
+                            title: "medusko.com ↗",
+                            icon: "globe",
+                            url: "https://medusko.com"
+                        )
+                        aboutLinkButton(
+                            title: "Support ✉",
+                            icon: "envelope.fill",
+                            url: "mailto:support@medusko.com"
+                        )
+                        aboutLinkButton(
+                            title: "@meduskodev ↗",
+                            icon: "bubble.left.and.bubble.right.fill",
+                            url: "https://twitter.com/meduskodev"
+                        )
                     }
-                    .padding(.vertical, 2)
-
-                    aboutRowDivider
+                }
 
                     HStack(spacing: 8) {
                         Button {
@@ -1133,7 +1161,6 @@ public struct MainScreen: View {
                         }
                         .buttonStyle(.plain)
                     }
-                }
 
                 // 5. FOOTER
                 HStack {
@@ -1161,6 +1188,30 @@ public struct MainScreen: View {
         Rectangle()
             .frame(height: 1)
             .foregroundColor(theme.outline.opacity(0.8))
+    }
+
+    private var contactSectionView: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            contactRow(label: "Website:", text: "medusko.com", url: "https://medusko.com")
+            contactRow(label: "Support:", text: "support@medusko.com", url: "mailto:support@medusko.com")
+            contactRow(label: "Social:", text: "@meduskodev on Twitter", url: "https://twitter.com/meduskodev")
+        }
+        .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private func contactRow(label: String, text: String, url: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(theme.onSurfaceVariant)
+                .frame(width: 60, alignment: .leading)
+            if let linkUrl = URL(string: url) {
+                Link(text, destination: linkUrl)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(theme.primary)
+            }
+        }
     }
 
     private func aboutSectionGroup<Content: View>(header: String? = nil, @ViewBuilder content: () -> Content) -> some View {

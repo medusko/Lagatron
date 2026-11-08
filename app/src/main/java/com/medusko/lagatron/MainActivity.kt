@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
     private var greenThresholdMs by mutableStateOf(10)
     private var orangeThresholdMs by mutableStateOf(100)
     private var startOnBoot by mutableStateOf(false)
+    private var intervalMs by mutableStateOf(1000L)
     private var portraitX by mutableStateOf(700)
     private var portraitY by mutableStateOf(30)
     private var landscapeX by mutableStateOf(1400)
@@ -215,6 +216,14 @@ class MainActivity : ComponentActivity() {
                         }
                         isDeviceLandscape = toLandscape
                     },
+                    intervalMs = intervalMs,
+                    onIntervalChanged = { ms ->
+                        intervalMs = ms
+                        prefs.intervalMs = ms
+                        if (isRunning) {
+                            PingForegroundService.updateConfig(this)
+                        }
+                    },
                     onToggleService = {
                         if (isRunning) {
                             stopOverlayService()
@@ -259,6 +268,7 @@ class MainActivity : ComponentActivity() {
         greenThresholdMs = prefs.greenThresholdMs
         orangeThresholdMs = prefs.orangeThresholdMs
         startOnBoot = prefs.startOnBoot
+        intervalMs = prefs.intervalMs
         isRunning = prefs.isServiceRunning
         portraitX = prefs.overlayX
         portraitY = prefs.overlayY

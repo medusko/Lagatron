@@ -115,6 +115,8 @@ fun MainScreen(
     onStartOnBootToggled: (Boolean) -> Unit,
     onPositionChanged: (isLandscape: Boolean, newX: Int, newY: Int) -> Unit,
     onSwitchOrientation: (toLandscape: Boolean) -> Unit,
+    intervalMs: Long = 1000L,
+    onIntervalChanged: (Long) -> Unit = {},
     onToggleService: () -> Unit
 ) {
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -236,8 +238,10 @@ fun MainScreen(
                 TargetSelector(
                     selectedPreset = selectedPreset,
                     customHost = customHost,
+                    intervalMs = intervalMs,
                     onPresetSelected = onPresetSelected,
-                    onCustomHostChanged = onCustomHostChanged
+                    onCustomHostChanged = onCustomHostChanged,
+                    onIntervalChanged = onIntervalChanged
                 )
             }
 
@@ -661,39 +665,39 @@ private fun AboutLagatronDialog(
                                 verticalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 Text(
-                                    text = "• Release Candidate 1.1: Dual distribution & open-source prep",
+                                    text = "• Release Candidate 2: Selectable app icons & dynamic telemetry controls",
                                     fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Normal,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "• Compile-time architecture flags & Google Play compliance",
+                                    text = "• Configurable Ping Frequency slider (0.5s to 60.0s, default 1.0s)",
                                     fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Normal,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "• Community support & GitHub Sponsor resource links",
+                                    text = "• Precision 5px overlay nudging with continuous hold-to-move",
                                     fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "• Haptic feedback integration on position arrow controls",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Normal,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "• Cross-platform information parity with Keyboardy & HotBoi",
                                     fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Normal,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "• Sub-millisecond ping regex parsing with reduced memory allocations",
                                     fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "• Draggable floating overlay coordinate persistence across orientation switches",
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Normal,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
@@ -771,7 +775,7 @@ private fun AboutLagatronDialog(
                                     text = "medusko.com",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF00E676),
+                                    color = Color(0xFF38BDF8),
                                     modifier = Modifier.clickable {
                                         uriHandler.openUri("https://medusko.com")
                                     }
@@ -792,7 +796,7 @@ private fun AboutLagatronDialog(
                                     text = "support@medusko.com",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF00E676),
+                                    color = Color(0xFF38BDF8),
                                     modifier = Modifier.clickable {
                                         uriHandler.openUri("mailto:support@medusko.com")
                                     }
@@ -810,13 +814,19 @@ private fun AboutLagatronDialog(
                                     modifier = Modifier.width(64.dp)
                                 )
                                 Text(
-                                    text = "@meduskodev on Twitter",
+                                    text = "@meduskodev",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF00E676),
+                                    color = Color(0xFF38BDF8),
                                     modifier = Modifier.clickable {
                                         uriHandler.openUri("https://twitter.com/meduskodev")
                                     }
+                                )
+                                Text(
+                                    text = " (on Twitter)",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color(0xFF94A3B8)
                                 )
                             }
                         }
