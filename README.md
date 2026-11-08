@@ -108,3 +108,12 @@ Built with **100% Kotlin & Jetpack Compose**:
 ./gradlew assembleRelease
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
+
+---
+
+## 📬 Contact & Support
+
+- **Website:** [medusko.com](https://medusko.com)
+- **Support Contact:** [support@medusko.com](mailto:support@medusko.com)
+- **Social:** [@meduskodev on Twitter](https://twitter.com/meduskodev)
+
