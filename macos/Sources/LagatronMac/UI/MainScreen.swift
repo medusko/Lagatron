@@ -1055,6 +1055,37 @@ public struct MainScreen: View {
 
                     aboutRowDivider
 
+                    // Contact Details
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack {
+                            Text("Website:")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(theme.muted)
+                                .frame(width: 60, alignment: .leading)
+                            Link("medusko.com", destination: URL(string: "https://medusko.com")!)
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        HStack {
+                            Text("Support:")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(theme.muted)
+                                .frame(width: 60, alignment: .leading)
+                            Link("support@medusko.com", destination: URL(string: "mailto:support@medusko.com")!)
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        HStack {
+                            Text("Social:")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(theme.muted)
+                                .frame(width: 60, alignment: .leading)
+                            Link("@meduskodev on Twitter", destination: URL(string: "https://twitter.com/meduskodev")!)
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                    }
+                    .padding(.vertical, 2)
+
+                    aboutRowDivider
+
                     HStack(spacing: 8) {
                         Button {
                             prefs.showAboutDialog = false

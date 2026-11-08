@@ -3,6 +3,8 @@ package com.medusko.lagatron.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -735,6 +737,87 @@ private fun AboutLagatronDialog(
                                 modifier = Modifier.weight(1.1f)
                             ) {
                                 uriHandler.openUri("https://github.com/sponsors/Zlatty")
+                            }
+                        }
+
+                        // Contact Details Card
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = Color(0xFF131B2E),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = Color(0xFF22304E),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Website:",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF94A3B8),
+                                    modifier = Modifier.width(64.dp)
+                                )
+                                Text(
+                                    text = "medusko.com",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF00E676),
+                                    modifier = Modifier.clickable {
+                                        uriHandler.openUri("https://medusko.com")
+                                    }
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Support:",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF94A3B8),
+                                    modifier = Modifier.width(64.dp)
+                                )
+                                Text(
+                                    text = "support@medusko.com",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF00E676),
+                                    modifier = Modifier.clickable {
+                                        uriHandler.openUri("mailto:support@medusko.com")
+                                    }
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Social:",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF94A3B8),
+                                    modifier = Modifier.width(64.dp)
+                                )
+                                Text(
+                                    text = "@meduskodev on Twitter",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF00E676),
+                                    modifier = Modifier.clickable {
+                                        uriHandler.openUri("https://twitter.com/meduskodev")
+                                    }
+                                )
                             }
                         }
                     }
