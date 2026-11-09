@@ -30,6 +30,8 @@ class AppPreferences(context: Context) {
         private const val KEY_SHOW_MS_UNIT = "show_ms_unit"
         private const val KEY_GREEN_THRESHOLD_MS = "green_threshold_ms"
         private const val KEY_ORANGE_THRESHOLD_MS = "orange_threshold_ms"
+        private val SAFE_HOST_REGEX = Regex("^[a-zA-Z0-9]([a-zA-Z0-9.-]{0,251}[a-zA-Z0-9])?$")
+        private val SAFE_IPV6_REGEX = Regex("^[0-9a-fA-F:]{2,45}$")
     }
 
     var showMsUnit: Boolean
@@ -148,11 +150,15 @@ class AppPreferences(context: Context) {
 
     fun setCoordinates(isLandscape: Boolean, x: Int, y: Int) {
         if (isLandscape) {
-            landscapeX = x
-            landscapeY = y
+            prefs.edit()
+                .putInt(KEY_OVERLAY_LANDSCAPE_X, x)
+                .putInt(KEY_OVERLAY_LANDSCAPE_Y, y)
+                .apply()
         } else {
-            overlayX = x
-            overlayY = y
+            prefs.edit()
+                .putInt(KEY_OVERLAY_X, x)
+                .putInt(KEY_OVERLAY_Y, y)
+                .apply()
         }
     }
 
@@ -175,10 +181,33 @@ class AppPreferences(context: Context) {
         if (slashIndex != -1) {
             cleaned = cleaned.substring(0, slashIndex)
         }
-        val colonIndex = cleaned.indexOf(':')
-        if (colonIndex != -1) {
-            cleaned = cleaned.substring(0, colonIndex)
+        cleaned = cleaned.trim()
+
+        // Handle bracketed IPv6 e.g. [2606:4700:4700::1111]:443
+        if (cleaned.startsWith("[")) {
+            val closeBracket = cleaned.indexOf(']')
+            if (closeBracket > 1) {
+                cleaned = cleaned.substring(1, closeBracket)
+            }
+        } else {
+            // Only strip :port if there is a single colon (IPv4 or hostname with port)
+            val firstColon = cleaned.indexOf(':')
+            val lastColon = cleaned.lastIndexOf(':')
+            if (firstColon != -1 && firstColon == lastColon) {
+                cleaned = cleaned.substring(0, firstColon)
+            }
         }
-        return cleaned.ifEmpty { "8.8.8.8" }
+
+        cleaned = cleaned.trim()
+        if (cleaned.isEmpty() || cleaned.startsWith("-") || cleaned.length > 253) {
+            return "8.8.8.8"
+        }
+
+        val isValid = if (cleaned.contains(':')) {
+            SAFE_IPV6_REGEX.matches(cleaned)
+        } else {
+            SAFE_HOST_REGEX.matches(cleaned) && !cleaned.contains("..")
+        }
+        return if (isValid) cleaned else "8.8.8.8"
     }
 }

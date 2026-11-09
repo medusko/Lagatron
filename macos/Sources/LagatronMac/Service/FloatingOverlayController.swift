@@ -7,6 +7,7 @@ public final class FloatingOverlayController {
 
     private var panel: NSPanel?
     private var hostingView: NSHostingView<FloatingOverlayBadgeView>?
+    private var lastBadgeView: FloatingOverlayBadgeView?
     private let prefs = AppPreferences.shared
 
     private init() {}
@@ -34,15 +35,18 @@ public final class FloatingOverlayController {
         )
 
         if let panel = panel, let hostingView = hostingView {
-            hostingView.rootView = badgeView
-            let fittingSize = hostingView.fittingSize
-            let targetWidth = max(36, fittingSize.width)
-            let targetHeight = max(24, fittingSize.height)
+            if lastBadgeView != badgeView {
+                lastBadgeView = badgeView
+                hostingView.rootView = badgeView
+                let fittingSize = hostingView.fittingSize
+                let targetWidth = max(36, fittingSize.width)
+                let targetHeight = max(24, fittingSize.height)
 
-            var frame = panel.frame
-            if abs(frame.width - targetWidth) > 1 || abs(frame.height - targetHeight) > 1 {
-                frame.size = CGSize(width: targetWidth, height: targetHeight)
-                panel.setFrame(frame, display: true)
+                var frame = panel.frame
+                if abs(frame.width - targetWidth) > 1 || abs(frame.height - targetHeight) > 1 {
+                    frame.size = CGSize(width: targetWidth, height: targetHeight)
+                    panel.setFrame(frame, display: true)
+                }
             }
             if !panel.isVisible {
                 panel.orderFrontRegardless()
@@ -50,6 +54,7 @@ public final class FloatingOverlayController {
             return
         }
 
+        lastBadgeView = badgeView
         let hosting = DraggableHostingView(rootView: badgeView) { [weak self] newX, newY in
             guard let self = self else { return }
             self.prefs.overlayX = newX
@@ -81,7 +86,7 @@ public final class FloatingOverlayController {
 
     public func applyPosition(x: Int, y: Int) {
         guard let panel = panel else { return }
-        let screenFrame = NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let screenFrame = panel.screen?.frame ?? NSScreen.main?.frame ?? NSScreen.screens.first?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         // Convert top-left (x, y) to AppKit bottom-left origin
         let appKitX = screenFrame.minX + CGFloat(x)
         let appKitY = screenFrame.maxY - CGFloat(y) - panel.frame.height
@@ -131,14 +136,14 @@ private final class DraggableHostingView<Content: View>: NSHostingView<Content> 
 
     override func mouseUp(with event: NSEvent) {
         guard let window = self.window else { return }
-        let screenFrame = window.screen?.frame ?? NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let screenFrame = window.screen?.frame ?? NSScreen.main?.frame ?? NSScreen.screens.first?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         let topLeftX = Int(round(window.frame.minX - screenFrame.minX))
         let topLeftY = Int(round(screenFrame.maxY - window.frame.maxY))
         onPositionSaved(max(0, topLeftX), max(0, topLeftY))
     }
 }
 
-public struct FloatingOverlayBadgeView: View {
+public struct FloatingOverlayBadgeView: View, Equatable {
     public let result: PingResult?
     public let mode: DisplayMode
     public let font: AppFont

@@ -161,6 +161,7 @@ public enum AppFont: String, CaseIterable, Identifiable {
     }
 
     private static var fontCache: [String: NSFont] = [:]
+    private static let fontCacheLock = NSLock()
 
     public func swiftUIFont(size: CGFloat, isBold: Bool, isItalic: Bool) -> Font {
         let nsFont = self.nsFont(size: size, isBold: isBold, isItalic: isItalic)
@@ -169,9 +170,12 @@ public enum AppFont: String, CaseIterable, Identifiable {
 
     public func nsFont(size: CGFloat, isBold: Bool, isItalic: Bool) -> NSFont {
         let cacheKey = "\(rawValue)_\(size)_\(isBold)_\(isItalic)"
+        Self.fontCacheLock.lock()
         if let cached = Self.fontCache[cacheKey] {
+            Self.fontCacheLock.unlock()
             return cached
         }
+        Self.fontCacheLock.unlock()
 
         let weight: NSFont.Weight = isBold ? .bold : .regular
         var baseFont: NSFont
@@ -210,7 +214,9 @@ public enum AppFont: String, CaseIterable, Identifiable {
             baseFont = manager.convert(baseFont, toHaveTrait: .boldFontMask)
         }
 
+        Self.fontCacheLock.lock()
         Self.fontCache[cacheKey] = baseFont
+        Self.fontCacheLock.unlock()
         return baseFont
     }
 
@@ -228,6 +234,7 @@ public enum AppFont: String, CaseIterable, Identifiable {
 
 public struct PingPoint: Identifiable, Equatable {
     private static var counter: Int = 0
+    private static let counterLock = NSLock()
 
     public let id: Int
     public let latencyMs: Float // -1 for drop, -2 for interruption marker
@@ -235,8 +242,11 @@ public struct PingPoint: Identifiable, Equatable {
     public let label: String
 
     public init(latencyMs: Float, isInterruption: Bool = false, label: String = "") {
+        Self.counterLock.lock()
         Self.counter += 1
-        self.id = Self.counter
+        let nextId = Self.counter
+        Self.counterLock.unlock()
+        self.id = nextId
         self.latencyMs = latencyMs
         self.isInterruption = isInterruption
         self.label = label

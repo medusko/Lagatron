@@ -143,6 +143,7 @@ class OverlayController(private val context: Context) {
     fun applyTypographyAndMode(mode: DisplayMode, font: AppFont, force: Boolean = false) {
         val view = overlayView ?: return
         view.post {
+            if (overlayView == null) return@post
             val bold = prefs.isBold
             val italic = prefs.isItalic
             val shadow = prefs.hasTextShadow
@@ -221,6 +222,7 @@ class OverlayController(private val context: Context) {
         val view = overlayView ?: return
 
         view.post {
+            if (overlayView == null) return@post
             // Check if typography or mode changed since last time
             if (mode != lastMode || font != lastFont) {
                 applyTypographyAndMode(mode, font)
@@ -290,6 +292,10 @@ class OverlayController(private val context: Context) {
         }
         lastMode = null
         lastFont = null
+        lastBold = null
+        lastItalic = null
+        lastShadow = null
+        lastFontSizeSp = null
         lastStatusColor = 0
         lastPingText = ""
     }

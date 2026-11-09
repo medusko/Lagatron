@@ -2,6 +2,8 @@ package com.medusko.lagatron.service
 
 import com.medusko.lagatron.model.PingResult
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.DisposableHandle
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -25,39 +27,54 @@ object PingEngine {
     // DNS resolution cache to avoid resolving hostname on every single ping
     private val dnsCache = ConcurrentHashMap<String, Pair<InetAddress, Long>>()
 
+    private fun sanitizeHost(host: String): String {
+        val trimmed = host.trim()
+        return if (trimmed.isEmpty() || trimmed.startsWith("-")) "8.8.8.8" else trimmed
+    }
+
     fun stream(host: String, intervalMs: Long): Flow<PingResult> = flow {
+        val safeHost = sanitizeHost(host)
         var process: Process? = null
+        var completionHandle: DisposableHandle? = null
         try {
             val intervalSec = maxOf(0.25f, intervalMs / 1000f)
-            val builder = ProcessBuilder("/system/bin/ping", "-i", String.format(Locale.US, "%.2f", intervalSec), host)
+            val builder = ProcessBuilder("/system/bin/ping", "-i", String.format(Locale.US, "%.2f", intervalSec), safeHost)
             builder.redirectErrorStream(true)
-            process = builder.start()
+            val startedProcess = builder.start()
+            process = startedProcess
 
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
+            completionHandle = currentCoroutineContext()[Job]?.invokeOnCompletion {
+                try {
+                    startedProcess.destroy()
+                } catch (_: Exception) {}
+            }
+
             var receivedAnyValid = false
-
-            while (currentCoroutineContext().isActive) {
-                val line = reader.readLine() ?: break
-                val result = parsePingLine(line, host)
-                if (result != null) {
-                    receivedAnyValid = true
-                    emit(result)
+            BufferedReader(InputStreamReader(startedProcess.inputStream)).use { reader ->
+                while (currentCoroutineContext().isActive) {
+                    val line = reader.readLine() ?: break
+                    val result = parsePingLine(line, safeHost)
+                    if (result != null) {
+                        receivedAnyValid = true
+                        emit(result)
+                    }
                 }
             }
 
-            if (!receivedAnyValid) {
+            if (!receivedAnyValid && currentCoroutineContext().isActive) {
                 // Fall back to periodic TCP if ICMP ping failed to start or produced no output
                 while (currentCoroutineContext().isActive) {
-                    emit(executeTcpPing(host))
+                    emit(executeTcpPing(safeHost))
                     delay(intervalMs)
                 }
             }
         } catch (_: Exception) {
             while (currentCoroutineContext().isActive) {
-                emit(executeTcpPing(host))
+                emit(executeTcpPing(safeHost))
                 delay(intervalMs)
             }
         } finally {
+            completionHandle?.dispose()
             try {
                 process?.destroy()
             } catch (_: Exception) {}
@@ -65,36 +82,40 @@ object PingEngine {
     }.flowOn(Dispatchers.IO)
 
     suspend fun ping(host: String): PingResult = withContext(Dispatchers.IO) {
-        val icmpResult = executeNativePingOnce(host)
+        val safeHost = sanitizeHost(host)
+        val icmpResult = executeNativePingOnce(safeHost)
         if (icmpResult != null) {
             return@withContext icmpResult
         }
-        executeTcpPing(host)
+        executeTcpPing(safeHost)
     }
 
     private fun executeNativePingOnce(host: String): PingResult? {
+        val safeHost = sanitizeHost(host)
+        var process: Process? = null
         return try {
-            val process = ProcessBuilder(
+            val startedProcess = ProcessBuilder(
                 "/system/bin/ping",
                 "-c", "1",
                 "-W", "1",
-                host
+                safeHost
             ).redirectErrorStream(true).start()
+            process = startedProcess
 
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            var line: String?
             var result: PingResult? = null
-
-            while (reader.readLine().also { line = it } != null) {
-                line?.let {
-                    val parsed = parsePingLine(it, host)
-                    if (parsed != null && parsed.isSuccess) {
-                        result = parsed
+            BufferedReader(InputStreamReader(startedProcess.inputStream)).use { reader ->
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    line?.let {
+                        val parsed = parsePingLine(it, safeHost)
+                        if (parsed != null && parsed.isSuccess) {
+                            result = parsed
+                        }
                     }
                 }
             }
 
-            val exitCode = process.waitFor()
+            val exitCode = startedProcess.waitFor()
             if (exitCode == 0 && result != null) {
                 result
             } else {
@@ -102,6 +123,10 @@ object PingEngine {
             }
         } catch (_: Exception) {
             null
+        } finally {
+            try {
+                process?.destroy()
+            } catch (_: Exception) {}
         }
     }
 

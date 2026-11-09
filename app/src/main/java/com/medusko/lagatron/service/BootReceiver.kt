@@ -8,9 +8,7 @@ import com.medusko.lagatron.data.AppPreferences
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action == Intent.ACTION_BOOT_COMPLETED ||
-            intent?.action == "android.intent.action.QUICKBOOT_POWERON"
-        ) {
+        if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
             val prefs = AppPreferences(context)
             if (prefs.startOnBoot && Settings.canDrawOverlays(context)) {
                 PingForegroundService.start(context)

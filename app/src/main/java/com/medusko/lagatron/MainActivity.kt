@@ -13,11 +13,13 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.medusko.lagatron.data.AppPreferences
 import com.medusko.lagatron.data.PingHistoryRepository
 import com.medusko.lagatron.model.AppFont
@@ -26,10 +28,14 @@ import com.medusko.lagatron.model.PresetServer
 import com.medusko.lagatron.service.PingForegroundService
 import com.medusko.lagatron.ui.MainScreen
 import com.medusko.lagatron.ui.theme.LagatronTheme
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var prefs: AppPreferences
+    private var customHostDebounceJob: Job? = null
 
     private var isRunning by mutableStateOf(false)
     private var isDarkMode by mutableStateOf(true)
@@ -84,9 +90,14 @@ class MainActivity : ComponentActivity() {
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
 
         setContent {
+            val serviceRunning by PingHistoryRepository.isRunning.collectAsState()
             val pingHistory by PingHistoryRepository.history.collectAsState()
             val latestPing by PingHistoryRepository.latestPing.collectAsState()
             val pingStats by PingHistoryRepository.stats.collectAsState()
+
+            LaunchedEffect(serviceRunning) {
+                isRunning = serviceRunning
+            }
 
             LagatronTheme(darkTheme = isDarkMode) {
                 MainScreen(
@@ -118,6 +129,7 @@ class MainActivity : ComponentActivity() {
                         prefs.themeMode = if (isDarkMode) "DARK" else "LIGHT"
                     },
                     onPresetSelected = { preset ->
+                        customHostDebounceJob?.cancel()
                         selectedPreset = preset
                         prefs.selectedPreset = preset
                         com.medusko.lagatron.data.PingHistoryRepository.recordInterruption("Target: ${preset.title}")
@@ -128,9 +140,14 @@ class MainActivity : ComponentActivity() {
                     onCustomHostChanged = { host ->
                         customHost = host
                         prefs.customHost = host
-                        com.medusko.lagatron.data.PingHistoryRepository.recordInterruption("Target: $host")
-                        if (isRunning) {
-                            PingForegroundService.updateConfig(this)
+                        customHostDebounceJob?.cancel()
+                        customHostDebounceJob = lifecycleScope.launch {
+                            delay(500L)
+                            val active = prefs.getActiveHost()
+                            com.medusko.lagatron.data.PingHistoryRepository.recordInterruption("Target: $active")
+                            if (isRunning) {
+                                PingForegroundService.updateConfig(this@MainActivity)
+                            }
                         }
                     },
                     onModeSelected = { mode ->
@@ -250,7 +267,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        isRunning = prefs.isServiceRunning
+        val running = prefs.isServiceRunning
+        isRunning = running
+        PingHistoryRepository.setServiceRunning(running)
         portraitX = prefs.overlayX
         portraitY = prefs.overlayY
         landscapeX = prefs.landscapeX
@@ -276,7 +295,9 @@ class MainActivity : ComponentActivity() {
         orangeThresholdMs = prefs.orangeThresholdMs
         startOnBoot = prefs.startOnBoot
         intervalMs = prefs.intervalMs
-        isRunning = prefs.isServiceRunning
+        val running = prefs.isServiceRunning
+        isRunning = running
+        PingHistoryRepository.setServiceRunning(running)
         portraitX = prefs.overlayX
         portraitY = prefs.overlayY
         landscapeX = prefs.landscapeX
@@ -322,11 +343,13 @@ class MainActivity : ComponentActivity() {
         PingForegroundService.start(this)
         isRunning = true
         prefs.isServiceRunning = true
+        PingHistoryRepository.setServiceRunning(true)
     }
 
     private fun stopOverlayService() {
         PingForegroundService.stop(this)
         isRunning = false
         prefs.isServiceRunning = false
+        PingHistoryRepository.setServiceRunning(false)
     }
 }

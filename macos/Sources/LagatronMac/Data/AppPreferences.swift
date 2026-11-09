@@ -188,10 +188,50 @@ public final class AppPreferences: ObservableObject {
         if let slashIndex = cleaned.firstIndex(of: "/") {
             cleaned = String(cleaned[..<slashIndex])
         }
-        if let colonIndex = cleaned.firstIndex(of: ":") {
-            cleaned = String(cleaned[..<colonIndex])
+        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Handle bracketed IPv6 e.g. [2606:4700:4700::1111]:443
+        if cleaned.hasPrefix("[") {
+            if let closeBracket = cleaned.firstIndex(of: "]"), closeBracket > cleaned.index(after: cleaned.startIndex) {
+                cleaned = String(cleaned[cleaned.index(after: cleaned.startIndex)..<closeBracket])
+            }
+        } else {
+            // Only strip :port if there is a single colon (IPv4 or hostname with port)
+            let firstColon = cleaned.firstIndex(of: ":")
+            let lastColon = cleaned.lastIndex(of: ":")
+            if let first = firstColon, first == lastColon {
+                cleaned = String(cleaned[..<first])
+            }
         }
-        return cleaned.isEmpty ? "8.8.8.8" : cleaned
+
+        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty,
+              !cleaned.hasPrefix("-"),
+              !cleaned.hasPrefix("."),
+              !cleaned.hasSuffix("."),
+              !cleaned.contains(".."),
+              cleaned.count <= 253 else {
+            return "8.8.8.8"
+        }
+
+        if cleaned.contains(":") {
+            // IPv6 literal allowlist
+            let ipv6Allowed = CharacterSet(charactersIn: "0123456789abcdefABCDEF:")
+            guard cleaned.count >= 2,
+                  cleaned.count <= 45,
+                  cleaned.unicodeScalars.allSatisfy({ ipv6Allowed.contains($0) }) else {
+                return "8.8.8.8"
+            }
+            return cleaned
+        } else {
+            // Hostname / IPv4 allowlist
+            let hostAllowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-")
+            guard !cleaned.hasSuffix("-"),
+                  cleaned.unicodeScalars.allSatisfy({ hostAllowed.contains($0) }) else {
+                return "8.8.8.8"
+            }
+            return cleaned
+        }
     }
 
     private func updateLoginItem(enabled: Bool) {

@@ -19,6 +19,7 @@ public final class PingMonitorService: ObservableObject {
     @Published public private(set) var validSamplesCount: Int = 0
 
     private var pingTask: Task<Void, Never>? = nil
+    private var hostDebounceTask: Task<Void, Never>? = nil
     private var sleepObserver: Any? = nil
     private var wakeObserver: Any? = nil
     private var lastObservedHost: String = ""
@@ -79,6 +80,8 @@ public final class PingMonitorService: ObservableObject {
     }
 
     public func notifyConfigChanged() {
+        hostDebounceTask?.cancel()
+        hostDebounceTask = nil
         let activeHost = prefs.getActiveHost()
         let activeInterval = prefs.intervalMs
 
@@ -91,7 +94,18 @@ public final class PingMonitorService: ObservableObject {
         onPingUpdated?(latestPing)
     }
 
+    public func notifyCustomHostChanged() {
+        hostDebounceTask?.cancel()
+        hostDebounceTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard let self = self, !Task.isCancelled else { return }
+            self.notifyConfigChanged()
+        }
+    }
+
     private func pausePingLoop() {
+        hostDebounceTask?.cancel()
+        hostDebounceTask = nil
         pingTask?.cancel()
         pingTask = nil
     }

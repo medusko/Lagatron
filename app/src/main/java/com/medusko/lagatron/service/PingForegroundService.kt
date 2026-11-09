@@ -12,6 +12,7 @@ import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import com.medusko.lagatron.MainActivity
 import com.medusko.lagatron.R
@@ -201,7 +202,12 @@ class PingForegroundService : Service() {
     }
 
     private fun startMonitoring() {
+        if (!Settings.canDrawOverlays(this)) {
+            stopMonitoring()
+            return
+        }
         prefs.isServiceRunning = true
+        PingHistoryRepository.setServiceRunning(true)
         PingHistoryRepository.recordInterruption("Started")
         val initialNotification = getOrCreateNotification("Starting ping monitor (${prefs.getActiveHost()})...")
 
@@ -248,6 +254,7 @@ class PingForegroundService : Service() {
 
     private fun stopMonitoring() {
         prefs.isServiceRunning = false
+        PingHistoryRepository.setServiceRunning(false)
         PingHistoryRepository.recordInterruption("Stopped")
         pausePingLoop()
         overlayController.hide()
@@ -311,6 +318,7 @@ class PingForegroundService : Service() {
 
     override fun onDestroy() {
         prefs.isServiceRunning = false
+        PingHistoryRepository.setServiceRunning(false)
         pausePingLoop()
         serviceScope.cancel()
         overlayController.hide()

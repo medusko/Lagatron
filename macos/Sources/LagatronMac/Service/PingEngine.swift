@@ -14,37 +14,79 @@ public final class PingEngine {
     private static var addressCache: [String: CachedAddr] = [:]
     private static let cacheLock = NSLock()
 
+    private final class StreamCancellationState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var cancelled = false
+
+        var isCancelled: Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            return cancelled
+        }
+
+        func cancel() {
+            lock.lock()
+            cancelled = true
+            lock.unlock()
+        }
+    }
+
+    private static func sanitizeHost(_ host: String) -> String {
+        let trimmed = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed.hasPrefix("-") {
+            return "8.8.8.8"
+        }
+        return trimmed
+    }
+
     // MARK: - Persistent Streaming Ping
     public static func stream(host: String, intervalMs: Int) -> AsyncStream<PingResult> {
-        AsyncStream { continuation in
+        let safeHost = sanitizeHost(host)
+        return AsyncStream { continuation in
+            let state = StreamCancellationState()
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/sbin/ping")
             let intervalSec = String(format: "%.2f", max(0.25, Double(intervalMs) / 1000.0))
-            process.arguments = ["-n", "-i", intervalSec, host]
+            process.arguments = ["-n", "-i", intervalSec, "--", safeHost]
 
             let pipe = Pipe()
             process.standardOutput = pipe
             process.standardError = pipe
+            let handle = pipe.fileHandleForReading
 
             continuation.onTermination = { @Sendable _ in
+                state.cancel()
                 if process.isRunning {
                     process.terminate()
                 }
+                try? handle.close()
             }
 
             DispatchQueue.global(qos: .utility).async {
-                do {
-                    try process.run()
-                } catch {
-                    runTcpFallbackLoop(host: host, intervalMs: intervalMs, continuation: continuation)
+                defer {
+                    try? handle.close()
+                }
+
+                if state.isCancelled {
+                    continuation.finish()
                     return
                 }
 
-                let handle = pipe.fileHandleForReading
+                do {
+                    try process.run()
+                } catch {
+                    if !state.isCancelled {
+                        runTcpFallbackLoop(host: safeHost, intervalMs: intervalMs, state: state, continuation: continuation)
+                    } else {
+                        continuation.finish()
+                    }
+                    return
+                }
+
                 var buffer = Data()
                 var receivedAnyOutput = false
 
-                while process.isRunning {
+                while !state.isCancelled && process.isRunning {
                     let chunk = handle.availableData
                     if chunk.isEmpty {
                         break
@@ -56,19 +98,25 @@ public final class PingEngine {
                         buffer.removeSubrange(0..<newlineRange.upperBound)
 
                         if let line = String(data: lineData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !line.isEmpty {
-                            if let result = parsePingLine(line, host: host) {
+                            if let result = parsePingLine(line, host: safeHost) {
                                 receivedAnyOutput = true
-                                continuation.yield(result)
+                                if case .terminated = continuation.yield(result) {
+                                    state.cancel()
+                                    break
+                                }
                             }
                         }
                     }
                 }
 
+                if process.isRunning {
+                    process.terminate()
+                }
                 process.waitUntilExit()
 
-                // If process exited without producing valid pings (e.g., DNS error, permission, or blocked ICMP), fall back to TCP
-                if !receivedAnyOutput {
-                    runTcpFallbackLoop(host: host, intervalMs: intervalMs, continuation: continuation)
+                // If process exited without producing valid pings (e.g., DNS error, permission, or blocked ICMP) and wasn't cancelled, fall back to TCP
+                if !receivedAnyOutput && !state.isCancelled {
+                    runTcpFallbackLoop(host: safeHost, intervalMs: intervalMs, state: state, continuation: continuation)
                 } else {
                     continuation.finish()
                 }
@@ -76,12 +124,29 @@ public final class PingEngine {
         }
     }
 
-    private static func runTcpFallbackLoop(host: String, intervalMs: Int, continuation: AsyncStream<PingResult>.Continuation) {
-        while true {
+    private static func runTcpFallbackLoop(
+        host: String,
+        intervalMs: Int,
+        state: StreamCancellationState,
+        continuation: AsyncStream<PingResult>.Continuation
+    ) {
+        let totalSleepSec = max(0.25, Double(intervalMs) / 1000.0)
+        while !state.isCancelled {
             let res = executeTcpPing(host: host)
-            continuation.yield(res)
-            Thread.sleep(forTimeInterval: max(0.25, Double(intervalMs) / 1000.0))
+            if state.isCancelled { break }
+            if case .terminated = continuation.yield(res) {
+                state.cancel()
+                break
+            }
+            var slept = 0.0
+            let step = 0.1
+            while slept < totalSleepSec && !state.isCancelled {
+                let remaining = min(step, totalSleepSec - slept)
+                Thread.sleep(forTimeInterval: remaining)
+                slept += remaining
+            }
         }
+        continuation.finish()
     }
 
     public static func parsePingLine(_ line: String, host: String) -> PingResult? {
@@ -103,26 +168,35 @@ public final class PingEngine {
 
     // Single-shot ping for on-demand checks
     public static func ping(host: String) async -> PingResult {
+        let safeHost = sanitizeHost(host)
         return await Task.detached(priority: .utility) {
-            if let icmpResult = executeNativePingOnce(host: host) {
+            if let icmpResult = executeNativePingOnce(host: safeHost) {
                 return icmpResult
             }
-            return executeTcpPing(host: host)
+            return executeTcpPing(host: safeHost)
         }.value
     }
 
     private static func executeNativePingOnce(host: String) -> PingResult? {
+        let safeHost = sanitizeHost(host)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/sbin/ping")
-        process.arguments = ["-c", "1", "-W", "1000", "-n", host]
+        process.arguments = ["-c", "1", "-W", "1000", "-n", "--", safeHost]
 
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
+        let handle = pipe.fileHandleForReading
+        defer {
+            try? handle.close()
+            if process.isRunning {
+                process.terminate()
+            }
+        }
 
         do {
             try process.run()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let data = handle.readDataToEndOfFile()
             process.waitUntilExit()
 
             guard process.terminationStatus == 0,
@@ -131,7 +205,7 @@ public final class PingEngine {
             }
 
             for line in output.components(separatedBy: .newlines) {
-                if let result = parsePingLine(line, host: host), result.isSuccess {
+                if let result = parsePingLine(line, host: safeHost), result.isSuccess {
                     return result
                 }
             }

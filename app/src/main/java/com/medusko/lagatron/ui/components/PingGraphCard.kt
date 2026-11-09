@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -146,6 +147,10 @@ fun PingGraphCard(
                         )
                     }
                 } else {
+                    val linePath = remember { Path() }
+                    val fillPath = remember { Path() }
+                    val dashEffect = remember { PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f) }
+
                     Canvas(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -164,8 +169,8 @@ fun PingGraphCard(
                         val peakY = maxOf(stats.maxMs, 100f) * 1.15f
                         val stepX = if (history.size > 1) width / (history.size - 1) else width
 
-                        val linePath = Path()
-                        val fillPath = Path()
+                        linePath.reset()
+                        fillPath.reset()
 
                         var firstPoint = true
 
@@ -185,7 +190,7 @@ fun PingGraphCard(
                                     start = Offset(x, 0f),
                                     end = Offset(x, height),
                                     strokeWidth = 2.dp.toPx(),
-                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f)
+                                    pathEffect = dashEffect
                                 )
 
                                 // Draw small indicator pip at top

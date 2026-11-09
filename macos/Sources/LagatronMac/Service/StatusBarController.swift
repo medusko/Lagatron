@@ -13,6 +13,11 @@ public final class StatusBarController: NSObject {
     private var lastRenderedText: String = ""
     private var lastRenderedColorHex: UInt32 = 0
     private var lastRenderedMode: DisplayMode? = nil
+    private var lastRenderedFont: AppFont? = nil
+    private var lastRenderedFontSize: CGFloat = 0
+    private var lastRenderedBold: Bool = false
+    private var lastRenderedItalic: Bool = false
+    private var lastRenderedShadow: Bool = false
     private var lastRenderedRunning: Bool = false
 
     public override init() {
@@ -169,11 +174,23 @@ public final class StatusBarController: NSObject {
         let fallbackText = prefs.showMsUnit ? "... ms" : "..."
         let latencyText = result?.formattedLatency(showMs: prefs.showMsUnit) ?? fallbackText
 
+        // Clamp menu bar font size so it always fits the macOS menu bar cleanly
+        let clampedSize = CGFloat(min(max(prefs.fontSizeSp, 9.0), 16.0))
+        let currentFont = prefs.appFont
+        let currentBold = prefs.isBold
+        let currentItalic = prefs.isItalic
+        let currentShadow = prefs.hasTextShadow
+
         // Fast-path: avoid re-rendering attributed string if nothing visual changed
         if lastRenderedRunning == true &&
            lastRenderedText == latencyText &&
            lastRenderedColorHex == statusColorHex &&
-           lastRenderedMode == mode {
+           lastRenderedMode == mode &&
+           lastRenderedFont == currentFont &&
+           lastRenderedFontSize == clampedSize &&
+           lastRenderedBold == currentBold &&
+           lastRenderedItalic == currentItalic &&
+           lastRenderedShadow == currentShadow {
             return
         }
 
@@ -181,10 +198,13 @@ public final class StatusBarController: NSObject {
         lastRenderedText = latencyText
         lastRenderedColorHex = statusColorHex
         lastRenderedMode = mode
+        lastRenderedFont = currentFont
+        lastRenderedFontSize = clampedSize
+        lastRenderedBold = currentBold
+        lastRenderedItalic = currentItalic
+        lastRenderedShadow = currentShadow
 
-        // Clamp menu bar font size so it always fits the macOS menu bar cleanly
-        let clampedSize = CGFloat(min(max(prefs.fontSizeSp, 9.0), 16.0))
-        let nsFont = prefs.appFont.nsFont(size: clampedSize, isBold: prefs.isBold, isItalic: prefs.isItalic)
+        let nsFont = currentFont.nsFont(size: clampedSize, isBold: currentBold, isItalic: currentItalic)
 
         var attributes: [NSAttributedString.Key: Any] = [
             .font: nsFont,

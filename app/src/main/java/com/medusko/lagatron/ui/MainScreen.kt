@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.medusko.lagatron.BuildConfig
 import com.medusko.lagatron.R
 import com.medusko.lagatron.data.PingPoint
 import com.medusko.lagatron.model.AppFont
@@ -128,6 +129,7 @@ fun MainScreen(
         AboutLagatronDialog(
             isRunning = isRunning,
             activeHost = activeHost,
+            pingIntervalMs = intervalMs,
             onDismiss = { showAboutDialog = false }
         )
     }
@@ -557,7 +559,7 @@ private fun AboutLagatronDialog(
                                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
                                     ) {
                                         Text(
-                                            text = "v1.1-RC1.1",
+                                            text = "v${BuildConfig.VERSION_NAME}",
                                             fontWeight = FontWeight.Bold,
                                             fontFamily = FontFamily.Monospace,
                                             fontSize = 11.sp,
@@ -566,7 +568,7 @@ private fun AboutLagatronDialog(
                                         )
                                     }
                                     Text(
-                                        text = "Build 4",
+                                        text = "Build ${BuildConfig.VERSION_CODE}",
                                         fontWeight = FontWeight.Bold,
                                         fontFamily = FontFamily.Monospace,
                                         fontSize = 9.5.sp,
@@ -867,7 +869,7 @@ private fun AboutLagatronDialog(
 
                     // 5. FOOTER
                     Text(
-                        text = "Lagatron v1.1-RC1.1 (Build 4) • Release Candidate 1.1 • Built for Android 15 / Pixel • Designed & Engineered by Medusko",
+                        text = "Lagatron v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE}) • Release Candidate 2 • Built for Android 15 / Pixel • Designed & Engineered by Medusko",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),

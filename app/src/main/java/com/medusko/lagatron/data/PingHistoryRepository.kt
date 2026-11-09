@@ -23,6 +23,10 @@ data class PingStats(
 
 object PingHistoryRepository {
     private const val MAX_HISTORY_SIZE = 50
+    private val lock = Any()
+
+    private val _isRunning = MutableStateFlow(false)
+    val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
 
     private val _history = MutableStateFlow<List<PingPoint>>(emptyList())
     val history: StateFlow<List<PingPoint>> = _history.asStateFlow()
@@ -33,29 +37,37 @@ object PingHistoryRepository {
     private val _stats = MutableStateFlow(PingStats())
     val stats: StateFlow<PingStats> = _stats.asStateFlow()
 
-    fun recordPing(result: PingResult) {
-        _latestPing.value = result
-
-        val currentList = _history.value.toMutableList()
-        val latency = result.latencyMs ?: -1f // -1 represents packet drop / timeout
-        currentList.add(PingPoint(latencyMs = latency, isInterruption = false))
-
-        if (currentList.size > MAX_HISTORY_SIZE) {
-            currentList.removeAt(0)
-        }
-        _history.value = currentList
-        recomputeStats(currentList)
+    fun setServiceRunning(running: Boolean) {
+        _isRunning.value = running
     }
 
-    fun recordInterruption(reason: String) {
-        val currentList = _history.value.toMutableList()
-        if (currentList.isNotEmpty() && !currentList.last().isInterruption) {
-            currentList.add(PingPoint(latencyMs = -2f, isInterruption = true, label = reason))
+    fun recordPing(result: PingResult) {
+        synchronized(lock) {
+            _latestPing.value = result
+
+            val currentList = _history.value.toMutableList()
+            val latency = result.latencyMs ?: -1f // -1 represents packet drop / timeout
+            currentList.add(PingPoint(latencyMs = latency, isInterruption = false))
+
             if (currentList.size > MAX_HISTORY_SIZE) {
                 currentList.removeAt(0)
             }
             _history.value = currentList
             recomputeStats(currentList)
+        }
+    }
+
+    fun recordInterruption(reason: String) {
+        synchronized(lock) {
+            val currentList = _history.value.toMutableList()
+            if (currentList.isNotEmpty() && !currentList.last().isInterruption) {
+                currentList.add(PingPoint(latencyMs = -2f, isInterruption = true, label = reason))
+                if (currentList.size > MAX_HISTORY_SIZE) {
+                    currentList.removeAt(0)
+                }
+                _history.value = currentList
+                recomputeStats(currentList)
+            }
         }
     }
 
@@ -88,8 +100,10 @@ object PingHistoryRepository {
     }
 
     fun clear() {
-        _history.value = emptyList()
-        _latestPing.value = null
-        _stats.value = PingStats()
+        synchronized(lock) {
+            _history.value = emptyList()
+            _latestPing.value = null
+            _stats.value = PingStats()
+        }
     }
 }

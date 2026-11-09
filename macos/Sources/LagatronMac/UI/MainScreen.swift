@@ -165,6 +165,9 @@ public struct MainScreen: View {
                             .font(.system(size: 13, design: .monospaced))
                             .foregroundColor(theme.onSurface)
                             .onChange(of: prefs.customHost) { _ in
+                                monitor.notifyCustomHostChanged()
+                            }
+                            .onSubmit {
                                 monitor.notifyConfigChanged()
                             }
                     }
@@ -932,7 +935,7 @@ public struct MainScreen: View {
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 3) {
-                            Text("v1.1-RC1")
+                            Text("v1.1-RC2-Beta")
                                 .font(.system(size: 11, weight: .black, design: .monospaced))
                                 .foregroundColor(theme.primary)
                                 .padding(.horizontal, 8)
@@ -944,7 +947,7 @@ public struct MainScreen: View {
                                         .stroke(theme.primary.opacity(0.35), lineWidth: 1)
                                 )
 
-                            Text("Build 3")
+                            Text("Build 4")
                                 .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                                 .foregroundColor(theme.onSurfaceVariant)
                         }
@@ -1045,10 +1048,10 @@ public struct MainScreen: View {
                 aboutSectionGroup(header: "RELEASE NOTES & WHAT'S NEW") {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Lagatron for macOS v1.1-RC1")
+                            Text("Lagatron for macOS v1.1-RC2-Beta")
                                 .font(.system(size: 12.5, weight: .bold))
                                 .foregroundColor(theme.onSurface)
-                            Text("Release Candidate 1 • November 2026")
+                            Text("Release Candidate 2 • November 2026")
                                 .font(.system(size: 10.5))
                                 .foregroundColor(theme.onSurfaceVariant)
                         }
@@ -1184,7 +1187,7 @@ public struct MainScreen: View {
                 // 5. FOOTER
                 HStack {
                     Spacer()
-                    Text("Designed & Engineered by Medusko • Lagatron v1.1-RC1 (Build 3)")
+                    Text("Designed & Engineered by Medusko • Lagatron v1.1-RC2-Beta (Build 4)")
                         .font(.system(size: 9.5, weight: .medium))
                         .foregroundColor(theme.onSurfaceVariant.opacity(0.8))
                     Spacer()
