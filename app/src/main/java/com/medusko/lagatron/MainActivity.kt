@@ -81,7 +81,7 @@ class MainActivity : ComponentActivity() {
     private var intervalMs by mutableStateOf(1000L)
     private var portraitX by mutableStateOf(700)
     private var portraitY by mutableStateOf(30)
-    private var landscapeX by mutableStateOf(1400)
+    private var landscapeX by mutableStateOf(2150)
     private var landscapeY by mutableStateOf(30)
     private var isDeviceLandscape by mutableStateOf(false)
 

@@ -5,8 +5,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,23 +14,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.StayCurrentLandscape
 import androidx.compose.material.icons.filled.StayCurrentPortrait
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -41,6 +38,7 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,19 +47,23 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PositionAdjuster(
     portraitX: Int,
@@ -77,6 +79,43 @@ fun PositionAdjuster(
 
     val currentX = if (isLandscapeTab) landscapeX else portraitX
     val currentY = if (isLandscapeTab) landscapeY else portraitY
+
+    val context = LocalContext.current
+    val displayMetrics = context.resources.displayMetrics
+    val density = displayMetrics.density
+
+    // Screen dimensions in pixels
+    val screenWidthPx = maxOf(displayMetrics.widthPixels, displayMetrics.heightPixels)
+    val screenHeightPx = minOf(displayMetrics.widthPixels, displayMetrics.heightPixels)
+    val portraitWidthPx = minOf(displayMetrics.widthPixels, displayMetrics.heightPixels)
+    val portraitHeightPx = maxOf(displayMetrics.widthPixels, displayMetrics.heightPixels)
+
+    // Landscape preset coordinates (accurately spanning the landscape display)
+    val landscapeTopRightX = (screenWidthPx - (95 * density).toInt()).coerceAtLeast(0)
+    val landscapeTopCenterX = ((screenWidthPx - (80 * density).toInt()) / 2).coerceAtLeast(0)
+    val landscapeTopLeftX = (36 * density).toInt()
+    val landscapeTopY = 30
+
+    // Portrait preset coordinates
+    val portraitRightX = (portraitWidthPx - (90 * density).toInt()).coerceAtLeast(0)
+    val portraitCenterX = ((portraitWidthPx - (70 * density).toInt()) / 2).coerceAtLeast(0)
+    val portraitLeftX = (28 * density).toInt()
+    val portraitTopY = 30
+
+    var xInput by remember(currentX) { mutableStateOf(currentX.toString()) }
+    var yInput by remember(currentY) { mutableStateOf(currentY.toString()) }
+
+    LaunchedEffect(currentX) {
+        if (xInput.toIntOrNull() != currentX) {
+            xInput = currentX.toString()
+        }
+    }
+
+    LaunchedEffect(currentY) {
+        if (yInput.toIntOrNull() != currentY) {
+            yInput = currentY.toString()
+        }
+    }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -143,7 +182,7 @@ fun PositionAdjuster(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Quick Preset Placement Chips for Active Orientation
+            // Quick Preset Placement Buttons for Active Orientation (Stretching evenly across the row)
             Text(
                 text = if (isLandscapeTab) "Landscape Presets" else "Portrait Presets",
                 fontSize = 12.sp,
@@ -151,85 +190,136 @@ fun PositionAdjuster(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            FlowRow(
+            if (isLandscapeTab) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FilledTonalButton(
+                        onClick = { onPositionChanged(true, landscapeTopRightX, landscapeTopY) },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = "Landscape Top Right",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    FilledTonalButton(
+                        onClick = { onPositionChanged(true, landscapeTopCenterX, landscapeTopY) },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = "Top Center",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    FilledTonalButton(
+                        onClick = { onPositionChanged(true, landscapeTopLeftX, landscapeTopY) },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = "Landscape Top Left",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FilledTonalButton(
+                        onClick = { onPositionChanged(false, portraitRightX, portraitTopY) },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = "Status Bar Right",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    FilledTonalButton(
+                        onClick = { onPositionChanged(false, portraitCenterX, 120) },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = "Top Center",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    FilledTonalButton(
+                        onClick = { onPositionChanged(false, portraitLeftX, portraitTopY) },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = "Status Bar Left",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.End
             ) {
-                if (!isLandscapeTab) {
-                    AssistChip(
-                        onClick = { onPositionChanged(false, 700, 30) },
-                        label = { Text("Status Bar Right") },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurface
-                        )
+                OutlinedButton(
+                    onClick = {
+                        if (isLandscapeTab) {
+                            onPositionChanged(true, 200, 200)
+                        } else {
+                            onPositionChanged(false, 100, 300)
+                        }
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                    modifier = Modifier.height(30.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.RestartAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
                     )
-                    AssistChip(
-                        onClick = { onPositionChanged(false, 80, 30) },
-                        label = { Text("Status Bar Left") },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                    AssistChip(
-                        onClick = { onPositionChanged(false, 400, 120) },
-                        label = { Text("Top Center") },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                    AssistChip(
-                        onClick = { onPositionChanged(false, 100, 300) },
-                        label = { Text("Reset") },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                } else {
-                    AssistChip(
-                        onClick = { onPositionChanged(true, 1400, 30) },
-                        label = { Text("Landscape Top Right") },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                    AssistChip(
-                        onClick = { onPositionChanged(true, 120, 30) },
-                        label = { Text("Landscape Top Left") },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                    AssistChip(
-                        onClick = { onPositionChanged(true, 800, 100) },
-                        label = { Text("Top Center") },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                    AssistChip(
-                        onClick = { onPositionChanged(true, 200, 200) },
-                        label = { Text("Reset") },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurface
-                        )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (isLandscapeTab) "Reset (200, 200)" else "Reset (100, 300)",
+                        fontSize = 11.sp
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Balanced 2-Column Layout: Arrows D-Pad (Left) and Coordinates Card (Right)
+            // Balanced 2-Column Layout: Arrows D-Pad (Left) and Editable Coordinates Card (Right)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -278,7 +368,7 @@ fun PositionAdjuster(
                     )
                 }
 
-                // Column 2: Coordinate Display & Reset Card
+                // Column 2: Coordinate Display & Editable Input Card
                 Surface(
                     modifier = Modifier.weight(1f),
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -286,59 +376,157 @@ fun PositionAdjuster(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp),
+                        modifier = Modifier.padding(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = if (isLandscapeTab) "Landscape Coordinates" else "Portrait Coordinates",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = if (isLandscapeTab) "Landscape Coordinates" else "Portrait Coordinates",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Editable coordinates",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text(
                                     text = "X",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                                Text(
-                                    text = "$currentX",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(36.dp)
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    ) {
+                                        BasicTextField(
+                                            value = xInput,
+                                            onValueChange = { raw ->
+                                                val filtered = raw.filter { it.isDigit() }.take(5)
+                                                xInput = filtered
+                                                filtered.toIntOrNull()?.let { validX ->
+                                                    onPositionChanged(isLandscapeTab, validX, currentY)
+                                                }
+                                            },
+                                            keyboardOptions = KeyboardOptions(
+                                                keyboardType = KeyboardType.Number,
+                                                imeAction = ImeAction.Done
+                                            ),
+                                            keyboardActions = KeyboardActions(
+                                                onDone = {
+                                                    if (xInput.isBlank()) {
+                                                        xInput = currentX.toString()
+                                                    }
+                                                }
+                                            ),
+                                            singleLine = true,
+                                            textStyle = TextStyle(
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontFamily = FontFamily.Monospace,
+                                                textAlign = TextAlign.Center
+                                            ),
+                                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
                             }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text(
                                     text = "Y",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                                Text(
-                                    text = "$currentY",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(36.dp)
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    ) {
+                                        BasicTextField(
+                                            value = yInput,
+                                            onValueChange = { raw ->
+                                                val filtered = raw.filter { it.isDigit() }.take(5)
+                                                yInput = filtered
+                                                filtered.toIntOrNull()?.let { validY ->
+                                                    onPositionChanged(isLandscapeTab, currentX, validY)
+                                                }
+                                            },
+                                            keyboardOptions = KeyboardOptions(
+                                                keyboardType = KeyboardType.Number,
+                                                imeAction = ImeAction.Done
+                                            ),
+                                            keyboardActions = KeyboardActions(
+                                                onDone = {
+                                                    if (yInput.isBlank()) {
+                                                        yInput = currentY.toString()
+                                                    }
+                                                }
+                                            ),
+                                            singleLine = true,
+                                            textStyle = TextStyle(
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontFamily = FontFamily.Monospace,
+                                                textAlign = TextAlign.Center
+                                            ),
+                                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
                             }
                         }
 
                         OutlinedButton(
                             onClick = {
                                 if (isLandscapeTab) {
-                                    onPositionChanged(true, 1400, 30)
+                                    onPositionChanged(true, landscapeTopRightX, landscapeTopY)
                                 } else {
-                                    onPositionChanged(false, 700, 30)
+                                    onPositionChanged(false, portraitRightX, portraitTopY)
                                 }
                             },
                             shape = RoundedCornerShape(8.dp),

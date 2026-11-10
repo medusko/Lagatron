@@ -145,7 +145,7 @@ class AppPreferences(context: Context) {
         set(value) = prefs.edit().putInt(KEY_OVERLAY_Y, value).apply()
 
     var landscapeX: Int
-        get() = prefs.getInt(KEY_OVERLAY_LANDSCAPE_X, 1400)
+        get() = prefs.getInt(KEY_OVERLAY_LANDSCAPE_X, 2150)
         set(value) = prefs.edit().putInt(KEY_OVERLAY_LANDSCAPE_X, value).apply()
 
     var landscapeY: Int
