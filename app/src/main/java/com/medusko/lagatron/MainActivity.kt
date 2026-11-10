@@ -83,6 +83,10 @@ class MainActivity : ComponentActivity() {
     private var portraitY by mutableStateOf(30)
     private var landscapeX by mutableStateOf(2150)
     private var landscapeY by mutableStateOf(30)
+    private var lastSavedPortraitX by mutableStateOf(700)
+    private var lastSavedPortraitY by mutableStateOf(30)
+    private var lastSavedLandscapeX by mutableStateOf(2150)
+    private var lastSavedLandscapeY by mutableStateOf(30)
     private var isDeviceLandscape by mutableStateOf(false)
 
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -163,6 +167,10 @@ class MainActivity : ComponentActivity() {
                     portraitY = portraitY,
                     landscapeX = landscapeX,
                     landscapeY = landscapeY,
+                    lastSavedPortraitX = lastSavedPortraitX,
+                    lastSavedPortraitY = lastSavedPortraitY,
+                    lastSavedLandscapeX = lastSavedLandscapeX,
+                    lastSavedLandscapeY = lastSavedLandscapeY,
                     isDeviceLandscape = isDeviceLandscape,
                     activeHost = prefs.getActiveHost(),
                     pingHistory = pingHistory,
@@ -257,13 +265,23 @@ class MainActivity : ComponentActivity() {
                         startOnBoot = boot
                         prefs.startOnBoot = boot
                     },
-                    onPositionChanged = { isLandscape, newX, newY ->
+                    onPositionChanged = { isLandscape, newX, newY, isUserManual ->
                         if (isLandscape) {
                             landscapeX = newX
                             landscapeY = newY
+                            if (isUserManual) {
+                                lastSavedLandscapeX = newX
+                                lastSavedLandscapeY = newY
+                                prefs.setLastSavedCoordinates(true, newX, newY)
+                            }
                         } else {
                             portraitX = newX
                             portraitY = newY
+                            if (isUserManual) {
+                                lastSavedPortraitX = newX
+                                lastSavedPortraitY = newY
+                                prefs.setLastSavedCoordinates(false, newX, newY)
+                            }
                         }
                         prefs.setCoordinates(isLandscape, newX, newY)
 
@@ -341,6 +359,10 @@ class MainActivity : ComponentActivity() {
         portraitY = prefs.overlayY
         landscapeX = prefs.landscapeX
         landscapeY = prefs.landscapeY
+        lastSavedPortraitX = prefs.lastSavedPortraitX
+        lastSavedPortraitY = prefs.lastSavedPortraitY
+        lastSavedLandscapeX = prefs.lastSavedLandscapeX
+        lastSavedLandscapeY = prefs.lastSavedLandscapeY
         themeMode = prefs.themeMode
     }
 

@@ -17,6 +17,10 @@ class AppPreferences(context: Context) {
         private const val KEY_OVERLAY_Y = "overlay_y"
         private const val KEY_OVERLAY_LANDSCAPE_X = "overlay_landscape_x"
         private const val KEY_OVERLAY_LANDSCAPE_Y = "overlay_landscape_y"
+        private const val KEY_LAST_SAVED_PORTRAIT_X = "last_saved_portrait_x"
+        private const val KEY_LAST_SAVED_PORTRAIT_Y = "last_saved_portrait_y"
+        private const val KEY_LAST_SAVED_LANDSCAPE_X = "last_saved_landscape_x"
+        private const val KEY_LAST_SAVED_LANDSCAPE_Y = "last_saved_landscape_y"
         private const val KEY_INTERVAL_MS = "interval_ms"
         private const val KEY_SERVICE_ACTIVE = "service_active"
         private const val KEY_USE_COLOR_CODING = "use_color_coding"
@@ -154,6 +158,36 @@ class AppPreferences(context: Context) {
 
     fun getX(isLandscape: Boolean): Int = if (isLandscape) landscapeX else overlayX
     fun getY(isLandscape: Boolean): Int = if (isLandscape) landscapeY else overlayY
+
+    var lastSavedPortraitX: Int
+        get() = prefs.getInt(KEY_LAST_SAVED_PORTRAIT_X, overlayX)
+        set(value) = prefs.edit().putInt(KEY_LAST_SAVED_PORTRAIT_X, value).apply()
+
+    var lastSavedPortraitY: Int
+        get() = prefs.getInt(KEY_LAST_SAVED_PORTRAIT_Y, overlayY)
+        set(value) = prefs.edit().putInt(KEY_LAST_SAVED_PORTRAIT_Y, value).apply()
+
+    var lastSavedLandscapeX: Int
+        get() = prefs.getInt(KEY_LAST_SAVED_LANDSCAPE_X, landscapeX)
+        set(value) = prefs.edit().putInt(KEY_LAST_SAVED_LANDSCAPE_X, value).apply()
+
+    var lastSavedLandscapeY: Int
+        get() = prefs.getInt(KEY_LAST_SAVED_LANDSCAPE_Y, landscapeY)
+        set(value) = prefs.edit().putInt(KEY_LAST_SAVED_LANDSCAPE_Y, value).apply()
+
+    fun setLastSavedCoordinates(isLandscape: Boolean, x: Int, y: Int) {
+        if (isLandscape) {
+            prefs.edit()
+                .putInt(KEY_LAST_SAVED_LANDSCAPE_X, x)
+                .putInt(KEY_LAST_SAVED_LANDSCAPE_Y, y)
+                .apply()
+        } else {
+            prefs.edit()
+                .putInt(KEY_LAST_SAVED_PORTRAIT_X, x)
+                .putInt(KEY_LAST_SAVED_PORTRAIT_Y, y)
+                .apply()
+        }
+    }
 
     fun setCoordinates(isLandscape: Boolean, x: Int, y: Int) {
         if (isLandscape) {

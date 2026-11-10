@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.OpenWith
@@ -70,8 +71,12 @@ fun PositionAdjuster(
     portraitY: Int,
     landscapeX: Int,
     landscapeY: Int,
+    lastSavedPortraitX: Int,
+    lastSavedPortraitY: Int,
+    lastSavedLandscapeX: Int,
+    lastSavedLandscapeY: Int,
     isDeviceLandscape: Boolean,
-    onPositionChanged: (isLandscape: Boolean, newX: Int, newY: Int) -> Unit,
+    onPositionChanged: (isLandscape: Boolean, newX: Int, newY: Int, isUserManual: Boolean) -> Unit,
     onSwitchOrientation: (toLandscape: Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -182,7 +187,7 @@ fun PositionAdjuster(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Quick Preset Placement Buttons for Active Orientation (Stretching evenly across the row)
+            // Quick Preset Placement Buttons for Active Orientation (Left, Center, Right)
             Text(
                 text = if (isLandscapeTab) "Landscape Presets" else "Portrait Presets",
                 fontSize = 12.sp,
@@ -198,20 +203,20 @@ fun PositionAdjuster(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     FilledTonalButton(
-                        onClick = { onPositionChanged(true, landscapeTopRightX, landscapeTopY) },
+                        onClick = { onPositionChanged(true, landscapeTopLeftX, landscapeTopY, false) },
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
-                            text = "Landscape Top Right",
+                            text = "Landscape Top Left",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center
                         )
                     }
                     FilledTonalButton(
-                        onClick = { onPositionChanged(true, landscapeTopCenterX, landscapeTopY) },
+                        onClick = { onPositionChanged(true, landscapeTopCenterX, landscapeTopY, false) },
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(10.dp)
@@ -224,13 +229,13 @@ fun PositionAdjuster(
                         )
                     }
                     FilledTonalButton(
-                        onClick = { onPositionChanged(true, landscapeTopLeftX, landscapeTopY) },
+                        onClick = { onPositionChanged(true, landscapeTopRightX, landscapeTopY, false) },
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
-                            text = "Landscape Top Left",
+                            text = "Landscape Top Right",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center
@@ -245,20 +250,20 @@ fun PositionAdjuster(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     FilledTonalButton(
-                        onClick = { onPositionChanged(false, portraitRightX, portraitTopY) },
+                        onClick = { onPositionChanged(false, portraitLeftX, portraitTopY, false) },
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
-                            text = "Status Bar Right",
+                            text = "Status Bar Left",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center
                         )
                     }
                     FilledTonalButton(
-                        onClick = { onPositionChanged(false, portraitCenterX, 120) },
+                        onClick = { onPositionChanged(false, portraitCenterX, 120, false) },
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(10.dp)
@@ -271,13 +276,13 @@ fun PositionAdjuster(
                         )
                     }
                     FilledTonalButton(
-                        onClick = { onPositionChanged(false, portraitLeftX, portraitTopY) },
+                        onClick = { onPositionChanged(false, portraitRightX, portraitTopY, false) },
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
-                            text = "Status Bar Left",
+                            text = "Status Bar Right",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center
@@ -286,33 +291,60 @@ fun PositionAdjuster(
                 }
             }
 
+            // Two Buttons below Presets: Default and Last Saved
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp),
-                horizontalArrangement = Arrangement.End
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(
                     onClick = {
                         if (isLandscapeTab) {
-                            onPositionChanged(true, 200, 200)
+                            onPositionChanged(true, landscapeTopRightX, landscapeTopY, false)
                         } else {
-                            onPositionChanged(false, 100, 300)
+                            onPositionChanged(false, portraitRightX, portraitTopY, false)
                         }
                     },
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
-                    modifier = Modifier.height(30.dp)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.RestartAlt,
                         contentDescription = null,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = if (isLandscapeTab) "Reset (200, 200)" else "Reset (100, 300)",
-                        fontSize = 11.sp
+                        text = "Default",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        if (isLandscapeTab) {
+                            onPositionChanged(true, lastSavedLandscapeX, lastSavedLandscapeY, false)
+                        } else {
+                            onPositionChanged(false, lastSavedPortraitX, lastSavedPortraitY, false)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Last Saved",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -331,7 +363,7 @@ fun PositionAdjuster(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     RepeatingNudgeButton(
-                        onClick = { onPositionChanged(isLandscapeTab, currentX, (currentY - 5).coerceAtLeast(0)) },
+                        onClick = { onPositionChanged(isLandscapeTab, currentX, (currentY - 5).coerceAtLeast(0), true) },
                         imageVector = Icons.Default.KeyboardArrowUp,
                         contentDescription = "Move Up"
                     )
@@ -342,7 +374,7 @@ fun PositionAdjuster(
                         modifier = Modifier.padding(vertical = 4.dp)
                     ) {
                         RepeatingNudgeButton(
-                            onClick = { onPositionChanged(isLandscapeTab, (currentX - 5).coerceAtLeast(0), currentY) },
+                            onClick = { onPositionChanged(isLandscapeTab, (currentX - 5).coerceAtLeast(0), currentY, true) },
                             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                             contentDescription = "Move Left"
                         )
@@ -355,14 +387,14 @@ fun PositionAdjuster(
                         )
 
                         RepeatingNudgeButton(
-                            onClick = { onPositionChanged(isLandscapeTab, currentX + 5, currentY) },
+                            onClick = { onPositionChanged(isLandscapeTab, currentX + 5, currentY, true) },
                             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             contentDescription = "Move Right"
                         )
                     }
 
                     RepeatingNudgeButton(
-                        onClick = { onPositionChanged(isLandscapeTab, currentX, currentY + 5) },
+                        onClick = { onPositionChanged(isLandscapeTab, currentX, currentY + 5, true) },
                         imageVector = Icons.Default.KeyboardArrowDown,
                         contentDescription = "Move Down"
                     )
@@ -433,7 +465,7 @@ fun PositionAdjuster(
                                                 val filtered = raw.filter { it.isDigit() }.take(5)
                                                 xInput = filtered
                                                 filtered.toIntOrNull()?.let { validX ->
-                                                    onPositionChanged(isLandscapeTab, validX, currentY)
+                                                    onPositionChanged(isLandscapeTab, validX, currentY, true)
                                                 }
                                             },
                                             keyboardOptions = KeyboardOptions(
@@ -491,7 +523,7 @@ fun PositionAdjuster(
                                                 val filtered = raw.filter { it.isDigit() }.take(5)
                                                 yInput = filtered
                                                 filtered.toIntOrNull()?.let { validY ->
-                                                    onPositionChanged(isLandscapeTab, currentX, validY)
+                                                    onPositionChanged(isLandscapeTab, currentX, validY, true)
                                                 }
                                             },
                                             keyboardOptions = KeyboardOptions(
@@ -519,29 +551,6 @@ fun PositionAdjuster(
                                     }
                                 }
                             }
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                if (isLandscapeTab) {
-                                    onPositionChanged(true, landscapeTopRightX, landscapeTopY)
-                                } else {
-                                    onPositionChanged(false, portraitRightX, portraitTopY)
-                                }
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.RestartAlt,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Default",
-                                fontSize = 12.sp
-                            )
                         }
                     }
                 }

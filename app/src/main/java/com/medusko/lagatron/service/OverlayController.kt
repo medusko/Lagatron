@@ -124,7 +124,9 @@ class OverlayController(private val context: Context) {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    prefs.setCoordinates(isLandscape(), p.x, p.y)
+                    val isLand = isLandscape()
+                    prefs.setCoordinates(isLand, p.x, p.y)
+                    prefs.setLastSavedCoordinates(isLand, p.x, p.y)
                     true
                 }
                 else -> false
