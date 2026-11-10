@@ -14,14 +14,27 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+val requiredSigningProps = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+val configuredStoreFile = keystoreProperties.getProperty("storeFile")?.trim().orEmpty()
+val resolvedStoreFile = if (configuredStoreFile.isNotEmpty()) {
+    val moduleRelative = file(configuredStoreFile)
+    if (moduleRelative.exists()) moduleRelative else rootProject.file(configuredStoreFile)
+} else {
+    null
+}
+val hasValidReleaseSigning = keystorePropertiesFile.exists() &&
+    requiredSigningProps.all { !keystoreProperties.getProperty(it).isNullOrBlank() } &&
+    resolvedStoreFile != null &&
+    resolvedStoreFile.exists()
+
 android {
     namespace = "com.medusko.lagatron"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.medusko.lagatron"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 8
         versionName = "1.1-RC2-Beta"
 
@@ -32,13 +45,11 @@ android {
 
     signingConfigs {
         create("release") {
-            if (keystorePropertiesFile.exists()) {
-                storeFile = file(keystoreProperties.getProperty("storeFile"))
+            if (hasValidReleaseSigning) {
+                storeFile = resolvedStoreFile
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
-            } else {
-                initWith(getByName("debug"))
             }
         }
     }
@@ -47,7 +58,11 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (hasValidReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                null
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -84,4 +99,24 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     debugImplementation(libs.androidx.ui.tooling)
+}
+
+gradle.taskGraph.whenReady {
+    val releaseBuildTasks = setOf(
+        "assembleRelease",
+        "bundleRelease",
+        "packageRelease",
+        "packageReleaseBundle",
+        "signReleaseBundle",
+        "validateSigningRelease"
+    )
+    val runningReleasePackaging = allTasks.any { task ->
+        task.project == project && task.name in releaseBuildTasks
+    }
+    if (runningReleasePackaging && !hasValidReleaseSigning) {
+        throw GradleException(
+            "Release signing is not configured: missing keystore.properties, required signing properties, " +
+                "or keystore file. Refusing to fall back to debug signing."
+        )
+    }
 }
