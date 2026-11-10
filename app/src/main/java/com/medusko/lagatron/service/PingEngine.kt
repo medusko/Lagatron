@@ -131,13 +131,16 @@ object PingEngine {
     }
 
     public fun parsePingLine(line: String, host: String): PingResult? {
+        if (line.contains("(DUP!)") || line.contains("Warning: time of day")) {
+            return null
+        }
         val timeIdx = line.indexOf("time=")
         if (timeIdx != -1) {
             val msIdx = line.indexOf(" ms", startIndex = timeIdx)
             if (msIdx != -1) {
                 val numStr = line.substring(timeIdx + 5, msIdx).trim()
                 val latency = numStr.toFloatOrNull()
-                if (latency != null) {
+                if (latency != null && latency >= 0f && latency < 10000f) {
                     return PingResult(latencyMs = latency, isSuccess = true, host = host)
                 }
             }
@@ -184,7 +187,7 @@ object PingEngine {
                 val socketAddress = InetSocketAddress(addr, port)
                 val start = System.nanoTime()
                 socket.connect(socketAddress, 1000)
-                val durationMs = (System.nanoTime() - start) / 1_000_000f
+                val durationMs = ((System.nanoTime() - start) / 1_000_000f).coerceIn(0f, 10000f)
                 socket.close()
                 preferredPorts[host] = port
                 return PingResult(latencyMs = durationMs, isSuccess = true, host = host)

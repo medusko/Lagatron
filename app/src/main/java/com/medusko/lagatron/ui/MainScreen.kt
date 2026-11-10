@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
@@ -70,11 +71,13 @@ import com.medusko.lagatron.model.AppFont
 import com.medusko.lagatron.model.DisplayMode
 import com.medusko.lagatron.model.PingResult
 import com.medusko.lagatron.model.PresetServer
+import com.medusko.lagatron.model.ThemeMode
 import com.medusko.lagatron.ui.components.DisplayModeSelector
 import com.medusko.lagatron.ui.components.OverlayPreview
 import com.medusko.lagatron.ui.components.PingGraphCard
 import com.medusko.lagatron.ui.components.PositionAdjuster
 import com.medusko.lagatron.ui.components.TargetSelector
+import com.medusko.lagatron.ui.components.ThemeModeSelector
 import com.medusko.lagatron.ui.theme.PingGreen
 import com.medusko.lagatron.ui.theme.PingRed
 
@@ -83,6 +86,7 @@ import com.medusko.lagatron.ui.theme.PingRed
 fun MainScreen(
     isRunning: Boolean,
     isDarkMode: Boolean,
+    selectedTheme: ThemeMode = ThemeMode.SYSTEM,
     selectedPreset: PresetServer,
     customHost: String,
     displayMode: DisplayMode,
@@ -105,6 +109,7 @@ fun MainScreen(
     latestPing: PingResult?,
     pingStats: com.medusko.lagatron.data.PingStats = com.medusko.lagatron.data.PingStats(),
     onToggleTheme: () -> Unit,
+    onThemeSelected: (ThemeMode) -> Unit = {},
     onPresetSelected: (PresetServer) -> Unit,
     onCustomHostChanged: (String) -> Unit,
     onModeSelected: (DisplayMode) -> Unit,
@@ -188,8 +193,12 @@ fun MainScreen(
                     }
                     IconButton(onClick = onToggleTheme) {
                         Icon(
-                            imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "Toggle Light/Dark Theme",
+                            imageVector = when (selectedTheme) {
+                                ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
+                                ThemeMode.DARK -> Icons.Default.DarkMode
+                                ThemeMode.LIGHT -> Icons.Default.LightMode
+                            },
+                            contentDescription = "Toggle Light/Dark Theme (${selectedTheme.title})",
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -209,32 +218,9 @@ fun MainScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (isRunning) {
-                        OutlinedButton(
-                            onClick = onManualRefresh,
-                            shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier.height(52.dp),
-                            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Refresh",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Refresh",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
                     Button(
                         onClick = onToggleService,
                         colors = ButtonDefaults.buttonColors(
@@ -243,7 +229,7 @@ fun MainScreen(
                         ),
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .height(52.dp)
                     ) {
                         Icon(
@@ -326,6 +312,13 @@ fun MainScreen(
                     fontSizeSp = fontSizeSp,
                     greenThresholdMs = greenThresholdMs,
                     orangeThresholdMs = orangeThresholdMs
+                )
+            }
+
+            item {
+                ThemeModeSelector(
+                    selectedTheme = selectedTheme,
+                    onThemeSelected = onThemeSelected
                 )
             }
 
@@ -521,29 +514,12 @@ private fun AboutLagatronDialog(
                                 )
 
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Text(
-                                            text = "Lagatron",
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 16.sp,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Surface(
-                                            shape = RoundedCornerShape(6.dp),
-                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                        ) {
-                                            Text(
-                                                text = "Android",
-                                                fontWeight = FontWeight.Black,
-                                                fontSize = 10.sp,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
-                                        }
-                                    }
+                                    Text(
+                                        text = "Lagatron",
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 16.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
                                     Text(
                                         text = "Subprocess ICMP & TCP Network Latency HUD",
                                         fontSize = 11.sp,

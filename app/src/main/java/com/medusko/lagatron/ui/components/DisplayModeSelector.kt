@@ -297,9 +297,9 @@ fun DisplayModeSelector(
 
             Slider(
                 value = fontSizeSp,
-                onValueChange = onFontSizeChanged,
-                valueRange = 9f..18f,
-                steps = 17,
+                onValueChange = { onFontSizeChanged((it * 2f).toInt() / 2f) },
+                valueRange = 8f..50f,
+                steps = 83,
                 colors = SliderDefaults.colors(
                     thumbColor = MaterialTheme.colorScheme.primary,
                     activeTrackColor = MaterialTheme.colorScheme.primary

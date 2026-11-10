@@ -102,19 +102,24 @@ fun PingGraphCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Stats summary row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 6.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatItem(label = "MIN", value = if (stats.sampleCount == 0) "--" else "%.0f ms".format(stats.minMs))
-                StatItem(label = "AVG", value = if (stats.sampleCount == 0) "--" else "%.1f ms".format(stats.avgMs))
-                StatItem(label = "MAX", value = if (stats.sampleCount == 0) "--" else "%.0f ms".format(stats.maxMs))
-                StatItem(label = "SAMPLES", value = "${stats.sampleCount}")
+                val minStr = if (stats.sampleCount == 0) "--" else if (stats.minMs >= 9999f) ">9999ms" else "%.0f ms".format(stats.minMs)
+                val avgStr = if (stats.sampleCount == 0) "--" else if (stats.avgMs >= 9999f) ">9999ms" else "%.1f ms".format(stats.avgMs)
+                val maxStr = if (stats.sampleCount == 0) "--" else if (stats.maxMs >= 9999f) ">9999ms" else "%.0f ms".format(stats.maxMs)
+                val samplesStr = "${stats.sampleCount}"
+
+                StatItem(label = "MIN", value = minStr, modifier = Modifier.weight(1f))
+                StatItem(label = "AVG", value = avgStr, modifier = Modifier.weight(1f))
+                StatItem(label = "MAX", value = maxStr, modifier = Modifier.weight(1f))
+                StatItem(label = "SAMPLES", value = samplesStr, modifier = Modifier.weight(1f))
             }
 
             // Canvas Graph
@@ -165,8 +170,11 @@ fun PingGraphCard(
                         drawLine(gridColor, Offset(0f, height / 2f), Offset(width, height / 2f), strokeWidth = 1f)
                         drawLine(gridColor, Offset(0f, height), Offset(width, height), strokeWidth = 1f)
 
-                        // Peak reference scaling
-                        val peakY = maxOf(stats.maxMs, 100f) * 1.15f
+                        // Peak reference scaling bounded to visible recent activity
+                        val validHistory = history.filter { !it.isInterruption && it.latencyMs >= 0f }
+                        val maxInHistory = validHistory.maxOfOrNull { it.latencyMs } ?: stats.maxMs
+                        val safeMax = maxInHistory.coerceIn(10f, 1000f)
+                        val peakY = maxOf(safeMax, 50f) * 1.15f
                         val stepX = if (history.size > 1) width / (history.size - 1) else width
 
                         linePath.reset()
@@ -268,8 +276,11 @@ fun PingGraphCard(
 }
 
 @Composable
-private fun StatItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun StatItem(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Text(
             text = label,
             fontSize = 10.sp,
@@ -278,10 +289,11 @@ private fun StatItem(label: String, value: String) {
         )
         Text(
             text = value,
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.ExtraBold,
             fontFamily = FontFamily.Monospace,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
         )
     }
 }

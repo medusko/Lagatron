@@ -46,7 +46,12 @@ object PingHistoryRepository {
             _latestPing.value = result
 
             val currentList = _history.value.toMutableList()
-            val latency = result.latencyMs ?: -1f // -1 represents packet drop / timeout
+            val rawLatency = result.latencyMs
+            val latency = when {
+                rawLatency == null || rawLatency < 0f -> -1f
+                rawLatency > 5000f -> 5000f
+                else -> rawLatency
+            }
             currentList.add(PingPoint(latencyMs = latency, isInterruption = false))
 
             if (currentList.size > MAX_HISTORY_SIZE) {

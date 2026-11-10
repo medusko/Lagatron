@@ -13,18 +13,22 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.medusko.lagatron.data.AppPreferences
 import com.medusko.lagatron.data.PingHistoryRepository
 import com.medusko.lagatron.model.AppFont
 import com.medusko.lagatron.model.DisplayMode
 import com.medusko.lagatron.model.PresetServer
+import com.medusko.lagatron.model.ThemeMode
 import com.medusko.lagatron.service.PingForegroundService
 import com.medusko.lagatron.ui.MainScreen
 import com.medusko.lagatron.ui.theme.LagatronTheme
@@ -39,6 +43,7 @@ class MainActivity : ComponentActivity() {
 
     private var isRunning by mutableStateOf(false)
     private var isDarkMode by mutableStateOf(true)
+    private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
     private var selectedPreset by mutableStateOf(PresetServer.GOOGLE)
     private var customHost by mutableStateOf("")
     private var displayMode by mutableStateOf(DisplayMode.BOTH)
@@ -85,10 +90,6 @@ class MainActivity : ComponentActivity() {
         loadPreferences()
         updateOrientationState()
 
-        // Keep status bar dark with high contrast so white overlay text is always crystal clear
-        window.statusBarColor = android.graphics.Color.parseColor("#15181E")
-        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
-
         setContent {
             val serviceRunning by PingHistoryRepository.isRunning.collectAsState()
             val pingHistory by PingHistoryRepository.history.collectAsState()
@@ -99,10 +100,28 @@ class MainActivity : ComponentActivity() {
                 isRunning = serviceRunning
             }
 
-            LagatronTheme(darkTheme = isDarkMode) {
+            val systemInDark = isSystemInDarkTheme()
+            val effectiveDark = when (themeMode) {
+                ThemeMode.SYSTEM -> systemInDark
+                ThemeMode.DARK -> true
+                ThemeMode.LIGHT -> false
+            }
+            isDarkMode = effectiveDark
+
+            SideEffect {
+                window.statusBarColor = if (effectiveDark) {
+                    android.graphics.Color.parseColor("#15181E")
+                } else {
+                    android.graphics.Color.parseColor("#F8F9FA")
+                }
+                WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !effectiveDark
+            }
+
+            LagatronTheme(darkTheme = effectiveDark) {
                 MainScreen(
                     isRunning = isRunning,
-                    isDarkMode = isDarkMode,
+                    isDarkMode = effectiveDark,
+                    selectedTheme = themeMode,
                     selectedPreset = selectedPreset,
                     customHost = customHost,
                     displayMode = displayMode,
@@ -125,8 +144,17 @@ class MainActivity : ComponentActivity() {
                     latestPing = latestPing,
                     pingStats = pingStats,
                     onToggleTheme = {
-                        isDarkMode = !isDarkMode
-                        prefs.themeMode = if (isDarkMode) "DARK" else "LIGHT"
+                        val next = when (themeMode) {
+                            ThemeMode.SYSTEM -> ThemeMode.DARK
+                            ThemeMode.DARK -> ThemeMode.LIGHT
+                            ThemeMode.LIGHT -> ThemeMode.SYSTEM
+                        }
+                        themeMode = next
+                        prefs.themeMode = next
+                    },
+                    onThemeSelected = { newTheme ->
+                        themeMode = newTheme
+                        prefs.themeMode = newTheme
                     },
                     onPresetSelected = { preset ->
                         customHostDebounceJob?.cancel()
@@ -267,13 +295,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        val running = prefs.isServiceRunning
-        isRunning = running
-        PingHistoryRepository.setServiceRunning(running)
-        portraitX = prefs.overlayX
-        portraitY = prefs.overlayY
-        landscapeX = prefs.landscapeX
-        landscapeY = prefs.landscapeY
+        loadPreferences()
         updateOrientationState()
     }
 
@@ -302,7 +324,7 @@ class MainActivity : ComponentActivity() {
         portraitY = prefs.overlayY
         landscapeX = prefs.landscapeX
         landscapeY = prefs.landscapeY
-        isDarkMode = prefs.themeMode != "LIGHT"
+        themeMode = prefs.themeMode
     }
 
     private fun requestPermissionsAndStart() {

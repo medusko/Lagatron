@@ -91,9 +91,16 @@ class AppPreferences(context: Context) {
             prefs.edit().putBoolean(KEY_USE_COLOR_CODING, value).apply()
         }
 
-    var themeMode: String
-        get() = prefs.getString(KEY_THEME_MODE, "DARK") ?: "DARK"
-        set(value) = prefs.edit().putString(KEY_THEME_MODE, value).apply()
+    var themeMode: com.medusko.lagatron.model.ThemeMode
+        get() {
+            val name = prefs.getString(KEY_THEME_MODE, com.medusko.lagatron.model.ThemeMode.SYSTEM.name)
+            return try {
+                com.medusko.lagatron.model.ThemeMode.valueOf(name ?: com.medusko.lagatron.model.ThemeMode.SYSTEM.name)
+            } catch (_: Exception) {
+                com.medusko.lagatron.model.ThemeMode.SYSTEM
+            }
+        }
+        set(value) = prefs.edit().putString(KEY_THEME_MODE, value.name).apply()
 
     var selectedPreset: PresetServer
         get() {
