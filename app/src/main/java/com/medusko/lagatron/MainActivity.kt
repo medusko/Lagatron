@@ -144,11 +144,7 @@ class MainActivity : ComponentActivity() {
                     latestPing = latestPing,
                     pingStats = pingStats,
                     onToggleTheme = {
-                        val next = when (themeMode) {
-                            ThemeMode.SYSTEM -> ThemeMode.DARK
-                            ThemeMode.DARK -> ThemeMode.LIGHT
-                            ThemeMode.LIGHT -> ThemeMode.SYSTEM
-                        }
+                        val next = if (effectiveDark) ThemeMode.LIGHT else ThemeMode.DARK
                         themeMode = next
                         prefs.themeMode = next
                     },

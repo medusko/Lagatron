@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
@@ -193,12 +192,8 @@ fun MainScreen(
                     }
                     IconButton(onClick = onToggleTheme) {
                         Icon(
-                            imageVector = when (selectedTheme) {
-                                ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
-                                ThemeMode.DARK -> Icons.Default.DarkMode
-                                ThemeMode.LIGHT -> Icons.Default.LightMode
-                            },
-                            contentDescription = "Toggle Light/Dark Theme (${selectedTheme.title})",
+                            imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = "Toggle Light/Dark Theme",
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -334,6 +329,44 @@ fun MainScreen(
                 )
             }
 
+            // Orientation & Status Bar Memory Info Card (positioned at the bottom of Overlay Position section)
+            item {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "Orientation & Status Bar Memory",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Lagatron remembers independent screen coordinates for portrait and landscape modes. As you rotate your device, the overlay automatically snaps to your configured position for that orientation.",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 16.sp,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             // Start on Boot Setting Card
             item {
                 Surface(
@@ -372,43 +405,6 @@ fun MainScreen(
                                 checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                             )
                         )
-                    }
-                }
-            }
-
-            item {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "Orientation & Status Bar Memory",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Lagatron remembers independent screen coordinates for portrait and landscape modes. As you rotate your device, the overlay automatically snaps to your configured position for that orientation.",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 16.sp,
-                                modifier = Modifier.padding(top = 2.dp)
-                            )
-                        }
                     }
                 }
             }
