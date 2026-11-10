@@ -40,6 +40,28 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var prefs: AppPreferences
     private var customHostDebounceJob: Job? = null
+    private var configDebounceJob: Job? = null
+    private var positionDebounceJob: Job? = null
+
+    private fun debounceUpdateConfig() {
+        configDebounceJob?.cancel()
+        configDebounceJob = lifecycleScope.launch {
+            delay(150L)
+            if (isRunning) {
+                PingForegroundService.updateConfig(this@MainActivity)
+            }
+        }
+    }
+
+    private fun debounceUpdatePosition(x: Int, y: Int) {
+        positionDebounceJob?.cancel()
+        positionDebounceJob = lifecycleScope.launch {
+            delay(50L)
+            if (isRunning) {
+                PingForegroundService.updatePosition(this@MainActivity, x, y)
+            }
+        }
+    }
 
     private var isRunning by mutableStateOf(false)
     private var isDarkMode by mutableStateOf(true)
@@ -109,10 +131,13 @@ class MainActivity : ComponentActivity() {
             isDarkMode = effectiveDark
 
             SideEffect {
-                window.statusBarColor = if (effectiveDark) {
-                    android.graphics.Color.parseColor("#15181E")
-                } else {
-                    android.graphics.Color.parseColor("#F8F9FA")
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                    @Suppress("DEPRECATION")
+                    window.statusBarColor = if (effectiveDark) {
+                        android.graphics.Color.parseColor("#15181E")
+                    } else {
+                        android.graphics.Color.parseColor("#F8F9FA")
+                    }
                 }
                 WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !effectiveDark
             }
@@ -219,18 +244,14 @@ class MainActivity : ComponentActivity() {
                     onFontSizeChanged = { size ->
                         fontSizeSp = size
                         prefs.fontSizeSp = size
-                        if (isRunning) {
-                            PingForegroundService.updateConfig(this)
-                        }
+                        debounceUpdateConfig()
                     },
                     onThresholdsChanged = { greenMs, orangeMs ->
                         greenThresholdMs = greenMs
                         orangeThresholdMs = orangeMs
                         prefs.greenThresholdMs = greenMs
                         prefs.orangeThresholdMs = orangeMs
-                        if (isRunning) {
-                            PingForegroundService.updateConfig(this)
-                        }
+                        debounceUpdateConfig()
                     },
                     onStartOnBootToggled = { boot ->
                         startOnBoot = boot
@@ -247,8 +268,8 @@ class MainActivity : ComponentActivity() {
                         prefs.setCoordinates(isLandscape, newX, newY)
 
                         val currentIsLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-                        if (isRunning && currentIsLandscape == isLandscape) {
-                            PingForegroundService.updatePosition(this, newX, newY)
+                        if (currentIsLandscape == isLandscape) {
+                            debounceUpdatePosition(newX, newY)
                         }
                     },
                     onSwitchOrientation = { toLandscape ->

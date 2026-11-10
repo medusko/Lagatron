@@ -34,50 +34,48 @@ object PingEngine {
 
     fun stream(host: String, intervalMs: Long): Flow<PingResult> = flow {
         val safeHost = sanitizeHost(host)
-        var process: Process? = null
-        var completionHandle: DisposableHandle? = null
-        try {
-            val intervalSec = maxOf(0.25f, intervalMs / 1000f)
-            val builder = ProcessBuilder("/system/bin/ping", "-i", String.format(Locale.US, "%.2f", intervalSec), safeHost)
-            builder.redirectErrorStream(true)
-            val startedProcess = builder.start()
-            process = startedProcess
+        val intervalSec = maxOf(0.25f, intervalMs / 1000f)
 
-            completionHandle = currentCoroutineContext()[Job]?.invokeOnCompletion {
+        while (currentCoroutineContext().isActive) {
+            var process: Process? = null
+            var completionHandle: DisposableHandle? = null
+            var receivedAnyValid = false
+            try {
+                val builder = ProcessBuilder("/system/bin/ping", "-O", "-i", String.format(Locale.US, "%.2f", intervalSec), safeHost)
+                builder.redirectErrorStream(true)
+                val startedProcess = builder.start()
+                process = startedProcess
+
+                completionHandle = currentCoroutineContext()[Job]?.invokeOnCompletion {
+                    try {
+                        startedProcess.destroy()
+                    } catch (_: Exception) {}
+                }
+
+                BufferedReader(InputStreamReader(startedProcess.inputStream)).use { reader ->
+                    while (currentCoroutineContext().isActive) {
+                        val line = reader.readLine() ?: break
+                        val result = parsePingLine(line, safeHost)
+                        if (result != null) {
+                            receivedAnyValid = true
+                            emit(result)
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                // Native process unavailable or restricted, fallback to TCP
+            } finally {
+                completionHandle?.dispose()
                 try {
-                    startedProcess.destroy()
+                    process?.destroy()
                 } catch (_: Exception) {}
             }
 
-            var receivedAnyValid = false
-            BufferedReader(InputStreamReader(startedProcess.inputStream)).use { reader ->
-                while (currentCoroutineContext().isActive) {
-                    val line = reader.readLine() ?: break
-                    val result = parsePingLine(line, safeHost)
-                    if (result != null) {
-                        receivedAnyValid = true
-                        emit(result)
-                    }
-                }
-            }
-
-            if (!receivedAnyValid && currentCoroutineContext().isActive) {
-                // Fall back to periodic TCP if ICMP ping failed to start or produced no output
-                while (currentCoroutineContext().isActive) {
-                    emit(executeTcpPing(safeHost))
-                    delay(intervalMs)
-                }
-            }
-        } catch (_: Exception) {
-            while (currentCoroutineContext().isActive) {
+            if (currentCoroutineContext().isActive) {
+                // Fall back to periodic TCP ping if process exited or closed stream
                 emit(executeTcpPing(safeHost))
                 delay(intervalMs)
             }
-        } finally {
-            completionHandle?.dispose()
-            try {
-                process?.destroy()
-            } catch (_: Exception) {}
         }
     }.flowOn(Dispatchers.IO)
 
@@ -145,11 +143,15 @@ object PingEngine {
                 }
             }
         }
-        if (line.contains("Request timeout") ||
+        if (line.contains("no answer yet") ||
+            line.contains("Request timeout") ||
             line.contains("100% packet loss") ||
             line.contains("100.0% packet loss") ||
             line.contains("Unreachable") ||
-            line.contains("Host is down")
+            line.contains("Host is down") ||
+            line.contains("Destination Host Unreachable") ||
+            line.contains("Destination Net Unreachable") ||
+            line.contains("Packet filtered")
         ) {
             return PingResult(latencyMs = null, isSuccess = false, host = host)
         }

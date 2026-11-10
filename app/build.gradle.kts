@@ -21,8 +21,8 @@ android {
     defaultConfig {
         applicationId = "com.medusko.lagatron"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 7
+        targetSdk = 35
+        versionCode = 8
         versionName = "1.1-RC2-Beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
