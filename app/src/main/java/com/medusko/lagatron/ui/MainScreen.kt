@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -208,11 +209,15 @@ fun MainScreen(
             )
         },
         bottomBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (BuildConfig.SHOW_ADS) {
+                    AdBannerView()
+                }
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -244,6 +249,7 @@ fun MainScreen(
                         )
                     }
                 }
+            }
             }
         }
     ) { paddingValues ->
@@ -923,5 +929,27 @@ private fun AboutResourceLink(
                 maxLines = 1
             )
         }
+    }
+}
+
+@Composable
+fun AdBannerView(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        AndroidView(
+            modifier = Modifier.fillMaxWidth(),
+            factory = { context ->
+                com.google.android.gms.ads.AdView(context).apply {
+                    setAdSize(com.google.android.gms.ads.AdSize.BANNER)
+                    // Google's official Test Ad Unit ID for banners
+                    adUnitId = "ca-app-pub-3940256099942544/6300978111"
+                    loadAd(com.google.android.gms.ads.AdRequest.Builder().build())
+                }
+            }
+        )
     }
 }

@@ -40,7 +40,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("Boolean", "SHOW_ADS", "false")
+        buildConfigField("Boolean", "SHOW_ADS", "true")
     }
 
     signingConfigs {
@@ -97,6 +97,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.kotlinx.coroutines.android)
+    implementation("androidx.fragment:fragment-ktx:1.8.6")
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
 
     debugImplementation(libs.androidx.ui.tooling)
 }
